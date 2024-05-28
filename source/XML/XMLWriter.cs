@@ -1,5 +1,4 @@
 ﻿using System;
-using Unmanaged.Collections;
 
 namespace Unmanaged.XML
 {
@@ -12,11 +11,6 @@ namespace Unmanaged.XML
         public XMLWriter()
         {
             writer = new();
-        }
-
-        public XMLWriter(UnmanagedList<byte> data)
-        {
-            writer = new(data);
         }
 
         public readonly void Dispose()

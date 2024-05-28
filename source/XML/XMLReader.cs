@@ -1,47 +1,21 @@
 ﻿using System;
-using Unmanaged.Collections;
 
 namespace Unmanaged.XML
 {
-    public struct XMLReader : IDisposable
+    public ref struct XMLReader
     {
         private BinaryReader reader;
         private bool inside;
 
-        public readonly bool IsDisposed => reader.IsDisposed;
         public uint Position
         {
             readonly get => reader.Position;
             set => reader.Position = value;
         }
 
-        public XMLReader(UnmanagedList<byte> data)
-        {
-            reader = new(data);
-        }
-
-        public XMLReader(ReadOnlySpan<byte> data)
-        {
-            reader = new(data);
-        }
-
-        public unsafe XMLReader(ReadOnlySpan<char> data)
-        {
-            fixed (char* ptr = data)
-            {
-                Span<byte> bytes = new(ptr, data.Length * sizeof(char));
-                reader = new(bytes);
-            }
-        }
-
         public XMLReader(BinaryReader reader)
         {
             this.reader = reader;
-        }
-
-        public void Dispose()
-        {
-            reader.Dispose();
         }
 
         public readonly ReadOnlySpan<byte> AsSpan()
@@ -153,6 +127,11 @@ namespace Unmanaged.XML
             }
 
             return read;
+        }
+
+        public XMLNode ReadNode()
+        {
+            return reader.ReadObject<XMLNode>();
         }
 
         public ReadOnlySpan<char> ReadAttribute(out ReadOnlySpan<char> name)

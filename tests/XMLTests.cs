@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Unmanaged;
 using Unmanaged.XML;
 
@@ -17,7 +18,21 @@ namespace Serialization.Tests
         [Test]
         public void DeserializeXML()
         {
-            using XMLNode projectXml = new(XMLDummy);
+            using BinaryReader reader = new(XMLDummy);
+            XMLReader xmlReader = new(reader);
+            List<string> tokens = new();
+            while (xmlReader.ReadToken(out Token token))
+            {
+                tokens.Add(token.ToString(xmlReader));
+            }
+
+            foreach (string token in tokens)
+            {
+                Console.WriteLine(token);
+            }
+
+            reader.Position = 0;
+            using XMLNode projectXml = reader.ReadObject<XMLNode>();
             string str = projectXml.ToString();
             Console.WriteLine(str);
         }
@@ -25,7 +40,8 @@ namespace Serialization.Tests
         [Test]
         public void ModifyXML()
         {
-            using XMLNode projectXml = new(XMLDummy);
+            using BinaryReader reader = new(XMLDummy);
+            using XMLNode projectXml = reader.ReadObject<XMLNode>();
             projectXml.TryGetFirst("PropertyGroup", out XMLNode propertyGroup);
             propertyGroup.TryGetFirst("TargetFramework", out XMLNode tfm);
             tfm.Content = "net10.0";

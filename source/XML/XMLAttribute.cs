@@ -8,7 +8,7 @@ namespace Unmanaged.XML
         private UnmanagedArray<char> name;
         private UnmanagedArray<char> value;
 
-        public readonly Span<char> Name
+        public readonly ReadOnlySpan<char> Name
         {
             get => name.AsSpan();
             set
@@ -23,7 +23,7 @@ namespace Unmanaged.XML
             }
         }
 
-        public readonly Span<char> Value
+        public readonly ReadOnlySpan<char> Value
         {
             get => value.AsSpan();
             set

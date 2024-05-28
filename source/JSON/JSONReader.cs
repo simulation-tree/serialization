@@ -1,5 +1,4 @@
 using System;
-using Unmanaged.Collections;
 
 namespace Unmanaged.JSON
 {
@@ -12,11 +11,6 @@ namespace Unmanaged.JSON
         public JSONReader(ReadOnlySpan<byte> data)
         {
             reader = new(data);
-        }
-
-        public JSONReader(UnmanagedList<byte> list)
-        {
-            reader = new(list);
         }
 
         public JSONReader(BinaryReader reader)
@@ -92,7 +86,7 @@ namespace Unmanaged.JSON
                             return true;
                         }
                     }
-                     
+
                     if (position + (5 * sizeof(char)) < reader.Length)
                     {
                         if (reader.PeekValue<uint>(position) == 6357094 && reader.PeekValue<char>(position + (4 * sizeof(char))) == 'e')
