@@ -101,7 +101,7 @@ namespace Unmanaged.JSON
             writer.WriteSpan("null".AsSpan());
         }
 
-        public readonly void WriteObject<T>(T obj) where T : unmanaged, IJSONObject
+        public readonly void WriteObject<T>(T obj) where T : unmanaged, IJSONSerializable
         {
             writer.WriteValue('{');
             obj.Write(this);
@@ -113,7 +113,7 @@ namespace Unmanaged.JSON
         /// </summary>
         public void WriteName(ReadOnlySpan<char> name)
         {
-            if (last.type != Token.Type.StartObject && last.type != Token.Type.StartArray)
+            if (last.type != Token.Type.StartObject && last.type != Token.Type.StartArray && last.type != Token.Type.Unknown)
             {
                 writer.WriteValue(',');
             }
@@ -140,7 +140,7 @@ namespace Unmanaged.JSON
             WriteBoolean(boolean);
         }
 
-        public void WriteProperty<T>(ReadOnlySpan<char> name, T obj) where T : unmanaged, IJSONObject
+        public void WriteProperty<T>(ReadOnlySpan<char> name, T obj) where T : unmanaged, IJSONSerializable
         {
             WriteName(name);
             WriteObject(obj);

@@ -2,71 +2,53 @@ using System;
 
 namespace Unmanaged.JSON
 {
-    public struct JSONReader : IDisposable
+    public struct JSONReader
     {
         private BinaryReader reader;
 
         public readonly bool IsDisposed => reader.IsDisposed;
-
-        public JSONReader(ReadOnlySpan<byte> data)
-        {
-            reader = new(data);
-        }
 
         public JSONReader(BinaryReader reader)
         {
             this.reader = reader;
         }
 
-        public unsafe JSONReader(ReadOnlySpan<char> data)
-        {
-            fixed (char* ptr = data)
-            {
-                Span<byte> bytes = new(ptr, data.Length * sizeof(char));
-                reader = new(bytes);
-            }
-        }
-
-        public void Dispose()
-        {
-            reader.Dispose();
-        }
-
         public readonly bool PeekToken(out Token token)
         {
+            Span<char> buffer = stackalloc char[8];
             token = default;
             uint position = reader.Position;
             while (position < reader.Length)
             {
-                char c = reader.PeekValue<char>(position);
+                byte cLength = reader.PeekUTF8(position, out char c, out _);
                 if (c == '{')
                 {
-                    token = new Token(position, sizeof(char), Token.Type.StartObject);
+                    token = new Token(position, cLength, Token.Type.StartObject);
                     return true;
                 }
                 else if (c == '}')
                 {
-                    token = new Token(position, sizeof(char), Token.Type.EndObject);
+                    token = new Token(position, cLength, Token.Type.EndObject);
                     return true;
                 }
                 else if (c == '[')
                 {
-                    token = new Token(position, sizeof(char), Token.Type.StartArray);
+                    token = new Token(position, cLength, Token.Type.StartArray);
                     return true;
                 }
                 else if (c == ']')
                 {
-                    token = new Token(position, sizeof(char), Token.Type.EndArray);
+                    token = new Token(position, cLength, Token.Type.EndArray);
                     return true;
                 }
                 else if (c == '"')
                 {
                     uint start = position;
-                    position += sizeof(char);
+                    position += cLength;
                     while (position < reader.Length)
                     {
-                        c = reader.PeekValue<char>(position);
-                        position += sizeof(char);
+                        cLength = reader.PeekUTF8(position, out c, out _);
+                        position += cLength;
                         if (c == '"')
                         {
                             token = new Token(start, position - start, Token.Type.Text);
@@ -78,22 +60,18 @@ namespace Unmanaged.JSON
                 }
                 else if (c == 't' || c == 'f')
                 {
-                    if (position + (4 * sizeof(char)) < reader.Length)
+                    int peekLength = reader.PeekUTF8Span(position, 5, buffer);
+                    if (buffer[..peekLength].SequenceEqual("false"))
                     {
-                        if (reader.PeekValue<uint>(position) == 7471220)
-                        {
-                            token = new Token(position, 4 * sizeof(char), Token.Type.True);
-                            return true;
-                        }
+                        token = new Token(position, (uint)peekLength, Token.Type.False);
+                        return true;
                     }
 
-                    if (position + (5 * sizeof(char)) < reader.Length)
+                    Span<char> smallerBuffer = buffer[..(peekLength - 1)];
+                    if (smallerBuffer.SequenceEqual("true"))
                     {
-                        if (reader.PeekValue<uint>(position) == 6357094 && reader.PeekValue<char>(position + (4 * sizeof(char))) == 'e')
-                        {
-                            token = new Token(position, 5 * sizeof(char), Token.Type.False);
-                            return true;
-                        }
+                        token = new Token(position, (uint)peekLength - 1, Token.Type.True);
+                        return true;
                     }
 
                     throw new InvalidOperationException($"Unexpected token {c} at {position}.");
@@ -101,17 +79,17 @@ namespace Unmanaged.JSON
                 else if (char.IsDigit(c) || c == '.' || c == '-')
                 {
                     uint start = position;
-                    position += sizeof(char);
+                    position += cLength;
                     while (position < reader.Length)
                     {
-                        c = reader.PeekValue<char>(position);
+                        cLength = reader.PeekUTF8(position, out c, out _);
                         if (!char.IsDigit(c) && c != '.' && c != '-')
                         {
                             token = new Token(start, position - start, Token.Type.Number);
                             return true;
                         }
 
-                        position += sizeof(char);
+                        position += cLength;
                     }
 
                     throw new InvalidOperationException($"Invalid JSON token at position {position}, expected number.");
@@ -119,7 +97,7 @@ namespace Unmanaged.JSON
                 else
                 {
                     //skip
-                    position += sizeof(char);
+                    position += cLength;
                 }
             }
 
@@ -141,7 +119,7 @@ namespace Unmanaged.JSON
             return read;
         }
 
-        public ReadOnlySpan<char> ReadText(out ReadOnlySpan<char> name)
+        public int ReadText(Span<char> buffer)
         {
             while (ReadToken(out Token token))
             {
@@ -151,11 +129,53 @@ namespace Unmanaged.JSON
                 }
                 else if (token.type == Token.Type.Text)
                 {
-                    name = GetText(token);
-                    if (ReadToken(out Token value) && value.type == Token.Type.Text)
-                    {
-                        return GetText(value);
-                    }
+                    return GetText(token, buffer);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            throw new InvalidOperationException("Expected token for text but none found");
+        }
+
+        public double ReadNumber()
+        {
+            while (ReadToken(out Token token))
+            {
+                if (token.type == Token.Type.EndObject || token.type == Token.Type.EndArray)
+                {
+                    //skip
+                }
+                else if (token.type == Token.Type.Number)
+                {
+                    return GetNumber(token);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            throw new InvalidOperationException("Expected token for number but none found");
+        }
+
+        public bool ReadBoolean()
+        {
+            while (ReadToken(out Token token))
+            {
+                if (token.type == Token.Type.EndObject || token.type == Token.Type.EndArray)
+                {
+                    //skip
+                }
+                else if (token.type == Token.Type.True)
+                {
+                    return true;
+                }
+                else if (token.type == Token.Type.False)
+                {
+                    return false;
                 }
                 else
                 {
@@ -166,57 +186,7 @@ namespace Unmanaged.JSON
             throw new InvalidOperationException("Expected token for property name");
         }
 
-        public double ReadNumber(out ReadOnlySpan<char> name)
-        {
-            while (ReadToken(out Token token))
-            {
-                if (token.type == Token.Type.EndObject || token.type == Token.Type.EndArray)
-                {
-                    //skip
-                }
-                else if (token.type == Token.Type.Text)
-                {
-                    name = GetText(token);
-                    if (ReadToken(out Token value) && value.type == Token.Type.Number)
-                    {
-                        return GetNumber(value);
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            throw new InvalidOperationException("Expected token for property name");
-        }
-
-        public bool ReadBoolean(out ReadOnlySpan<char> name)
-        {
-            while (ReadToken(out Token token))
-            {
-                if (token.type == Token.Type.EndObject || token.type == Token.Type.EndArray)
-                {
-                    //skip
-                }
-                else if (token.type == Token.Type.Text)
-                {
-                    name = GetText(token);
-                    if (ReadToken(out Token value) && (value.type == Token.Type.True || value.type == Token.Type.False))
-                    {
-                        return GetBoolean(value);
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            throw new InvalidOperationException("Expected token for property name");
-        }
-
-        public T ReadObject<T>() where T : unmanaged, IJSONObject
+        public T ReadObject<T>() where T : unmanaged, IJSONSerializable
         {
             while (ReadToken(out Token token))
             {
@@ -227,7 +197,7 @@ namespace Unmanaged.JSON
                 else if (token.type == Token.Type.StartObject)
                 {
                     T obj = default;
-                    obj.Read(ref this);
+                    obj.Read(this);
                     return obj;
                 }
                 else
@@ -239,29 +209,36 @@ namespace Unmanaged.JSON
             throw new InvalidOperationException("Expected start object token.");
         }
 
-        public readonly ReadOnlySpan<char> GetText(Token token)
+        public unsafe readonly int GetText(Token token, Span<char> buffer)
         {
-            ReadOnlySpan<char> span = reader.PeekSpan<char>(token.position, token.length / sizeof(char));
-            if (token.type == Token.Type.Text)
+            int length = reader.PeekUTF8Span(token.position, token.length, buffer);
+            if (buffer[0] == '"')
             {
-                return span[1..^1];
+                fixed (char* ptr = buffer)
+                {
+                    for (int i = 0; i < length; i++)
+                    {
+                        ptr[i] = ptr[i + 1];
+                    }
+                }
+
+                return length - 2;
             }
-            else
-            {
-                return span;
-            }
+            else return length;
         }
 
         public readonly double GetNumber(Token token)
         {
-            ReadOnlySpan<char> span = GetText(token);
-            return double.Parse(span);
+            Span<char> buffer = stackalloc char[(int)token.length];
+            int length = GetText(token, buffer);
+            return double.Parse(buffer[..length]);
         }
 
         public readonly bool GetBoolean(Token token)
         {
-            ReadOnlySpan<char> span = GetText(token);
-            return span[0] == 't' || span[0] == '0';
+            Span<char> buffer = stackalloc char[(int)token.length];
+            int length = GetText(token, buffer);
+            return buffer[..length].SequenceEqual("true");
         }
     }
 }

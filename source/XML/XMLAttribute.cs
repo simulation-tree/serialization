@@ -54,15 +54,18 @@ namespace Unmanaged.XML
                 throw new Exception();
             }
 
-            name = new(reader.GetText(nameToken));
+            Span<char> buffer = stackalloc char[256];
+            int length = reader.GetText(nameToken, buffer);
+            name = new(buffer[..length]);
+
             Token valueToken = reader.ReadToken();
             if (valueToken.type != Token.Type.Text)
             {
                 throw new Exception();
             }
 
-            ReadOnlySpan<char> quotedText = reader.GetText(valueToken);
-            value = new(quotedText[1..^1]);
+            length = reader.GetText(valueToken, buffer);
+            value = new(buffer[..length]);
         }
 
         public void Dispose()

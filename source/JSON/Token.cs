@@ -13,6 +13,7 @@
 
         public enum Type : byte
         {
+            Unknown,
             StartObject,
             EndObject,
             StartArray,

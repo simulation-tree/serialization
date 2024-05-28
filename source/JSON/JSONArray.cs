@@ -5,7 +5,7 @@ using Unmanaged.JSON.Array;
 
 namespace Unmanaged.JSON
 {
-    public unsafe struct JSONArray : IDisposable
+    public unsafe struct JSONArray : IDisposable, ISerializable
     {
         private UnsafeJSONArray* value;
 
@@ -44,62 +44,6 @@ namespace Unmanaged.JSON
         {
             ThrowIfDisposed();
             UnsafeJSONArray.Free(ref value);
-        }
-
-        public readonly void ParseFrom(ref JSONReader reader)
-        {
-            ThrowIfDisposed();
-            ParseArray(ref reader, this);
-            static void ParseArray(ref JSONReader reader, JSONArray jsonArray)
-            {
-                while (reader.ReadToken(out Token token))
-                {
-                    if (token.type == Token.Type.True)
-                    {
-                        jsonArray.Add(reader.GetBoolean(token));
-                    }
-                    else if (token.type == Token.Type.False)
-                    {
-                        jsonArray.Add(reader.GetBoolean(token));
-                    }
-                    else if (token.type == Token.Type.Null)
-                    {
-                        jsonArray.AddNull();
-                    }
-                    else if (token.type == Token.Type.Number)
-                    {
-                        jsonArray.Add(reader.GetNumber(token));
-                    }
-                    else if (token.type == Token.Type.Text)
-                    {
-                        jsonArray.Add(reader.GetText(token));
-                    }
-                    else if (token.type == Token.Type.StartObject)
-                    {
-                        JSONObject newObject = new();
-                        newObject.ParseFrom(ref reader);
-                        jsonArray.Add(newObject);
-                    }
-                    else if (token.type == Token.Type.StartArray)
-                    {
-                        JSONArray newArray = new();
-                        newArray.ParseFrom(ref reader);
-                        jsonArray.Add(newArray);
-                    }
-                    else if (token.type == Token.Type.EndArray)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-
-        public readonly void ParseFrom(ReadOnlySpan<byte> jsonBytes)
-        {
-            ThrowIfDisposed();
-            JSONReader reader = new(jsonBytes);
-            ParseFrom(ref reader);
-            reader.Dispose();
         }
 
         public readonly void ToString(UnmanagedList<char> result, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
@@ -247,6 +191,64 @@ namespace Unmanaged.JSON
             uint index = elements.Count;
             index.TryFormat(nameBuffer, out int charsWritten);
             elements.Add(new JSONProperty(nameBuffer[..charsWritten]));
+        }
+
+        void ISerializable.Write(BinaryWriter writer)
+        {
+            UnmanagedList<char> list = new();
+            ToString(list);
+            writer.WriteUTF8Span(list.AsSpan());
+            list.Dispose();
+        }
+
+        void ISerializable.Read(BinaryReader reader)
+        {
+            value = UnsafeJSONArray.Allocate();
+            ParseArray(new(reader), reader, this);
+            static void ParseArray(JSONReader jsonReader, BinaryReader reader, JSONArray jsonArray)
+            {
+                while (jsonReader.ReadToken(out Token token))
+                {
+                    if (token.type == Token.Type.True)
+                    {
+                        jsonArray.Add(jsonReader.GetBoolean(token));
+                    }
+                    else if (token.type == Token.Type.False)
+                    {
+                        jsonArray.Add(jsonReader.GetBoolean(token));
+                    }
+                    else if (token.type == Token.Type.Null)
+                    {
+                        jsonArray.AddNull();
+                    }
+                    else if (token.type == Token.Type.Number)
+                    {
+                        jsonArray.Add(jsonReader.GetNumber(token));
+                    }
+                    else if (token.type == Token.Type.Text)
+                    {
+                        UnmanagedArray<char> listBuffer = new(token.length * 4);
+                        Span<char> textSpan = listBuffer.AsSpan();
+                        int textLength = jsonReader.GetText(token, textSpan);
+                        jsonArray.Add(textSpan[..textLength].TrimStart('"').TrimEnd('"'));
+                        listBuffer.Dispose();
+                    }
+                    else if (token.type == Token.Type.StartObject)
+                    {
+                        JSONObject newObject = reader.ReadObject<JSONObject>();
+                        jsonArray.Add(newObject);
+                    }
+                    else if (token.type == Token.Type.StartArray)
+                    {
+                        JSONArray newArray = reader.ReadObject<JSONArray>();
+                        jsonArray.Add(newArray);
+                    }
+                    else if (token.type == Token.Type.EndArray)
+                    {
+                        break;
+                    }
+                }
+            }
         }
     }
 }

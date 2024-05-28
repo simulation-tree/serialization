@@ -2,9 +2,9 @@
 
 namespace Unmanaged.XML
 {
-    public ref struct XMLReader
+    public ref struct XMLReader(BinaryReader reader)
     {
-        private BinaryReader reader;
+        private BinaryReader reader = reader;
         private bool inside;
 
         public uint Position
@@ -13,10 +13,7 @@ namespace Unmanaged.XML
             set => reader.Position = value;
         }
 
-        public XMLReader(BinaryReader reader)
-        {
-            this.reader = reader;
-        }
+        public readonly uint Length => reader.Length;
 
         public readonly ReadOnlySpan<byte> AsSpan()
         {
@@ -28,30 +25,30 @@ namespace Unmanaged.XML
             token = default;
             while (position < reader.Length)
             {
-                char c = reader.PeekValue<char>(position);
+                uint cLength = reader.PeekUTF8(position, out char c, out char high);
                 if (c == '<')
                 {
-                    token = new Token(position, sizeof(char), Token.Type.Open);
+                    token = new Token(position, cLength, Token.Type.Open);
                     return true;
                 }
                 else if (c == '>')
                 {
-                    token = new Token(position, sizeof(char), Token.Type.Close);
+                    token = new Token(position, cLength, Token.Type.Close);
                     return true;
                 }
                 else if (c == '/')
                 {
-                    token = new Token(position, sizeof(char), Token.Type.Slash);
+                    token = new Token(position, cLength, Token.Type.Slash);
                     return true;
                 }
                 else if (c == '"')
                 {
                     uint start = position;
-                    position += sizeof(char);
+                    position += cLength;
                     while (position < reader.Length)
                     {
-                        c = reader.PeekValue<char>(position);
-                        position += sizeof(char);
+                        cLength = reader.PeekUTF8(position, out c, out _);
+                        position += cLength;
                         if (c == '"')
                         {
                             token = new Token(start, position - start, Token.Type.Text);
@@ -64,10 +61,10 @@ namespace Unmanaged.XML
                 else if (char.IsLetterOrDigit(c))
                 {
                     uint start = position;
-                    position += sizeof(char);
+                    position += cLength;
                     while (position < reader.Length)
                     {
-                        c = reader.PeekValue<char>(position);
+                        cLength = reader.PeekUTF8(position, out c, out _);
                         if (c == '<')
                         {
                             token = new Token(start, position - start, Token.Type.Text);
@@ -86,15 +83,15 @@ namespace Unmanaged.XML
                             }
                         }
 
-                        position += sizeof(char);
+                        position += cLength;
                     }
 
-                    throw new Exception($"Invalid XML, was reading content inside a node but no more XML tokens have been found to end.");
+                    return false;
                 }
                 else
                 {
                     //skip
-                    position += sizeof(char);
+                    position += cLength;
                 }
             }
 
@@ -134,18 +131,22 @@ namespace Unmanaged.XML
             return reader.ReadObject<XMLNode>();
         }
 
-        public ReadOnlySpan<char> ReadAttribute(out ReadOnlySpan<char> name)
+        public unsafe readonly int GetText(Token token, Span<char> buffer)
         {
-            Token token = ReadToken();
-            name = GetText(token);
-            token = ReadToken();
-            ReadOnlySpan<char> quotedText = GetText(token);
-            return quotedText[1..^1];
-        }
+            int length = reader.PeekUTF8Span(token.position, token.length, buffer);
+            if (buffer[0] == '"')
+            {
+                fixed (char* ptr = buffer)
+                {
+                    for (int i = 0; i < length; i++)
+                    {
+                        ptr[i] = ptr[i + 1];
+                    }
+                }
 
-        public readonly ReadOnlySpan<char> GetText(Token token)
-        {
-            return reader.PeekSpan<char>(token.position, token.length / sizeof(char));
+                return length - 2;
+            }
+            else return length;
         }
     }
 }

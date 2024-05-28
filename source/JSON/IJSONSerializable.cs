@@ -1,8 +1,8 @@
 ﻿namespace Unmanaged.JSON
 {
-    public interface IJSONObject
+    public interface IJSONSerializable
     {
-        void Read(ref JSONReader reader);
+        void Read(JSONReader reader);
         void Write(JSONWriter writer);
     }
 }

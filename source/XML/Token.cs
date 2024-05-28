@@ -1,4 +1,6 @@
-﻿namespace Unmanaged.XML
+﻿using System;
+
+namespace Unmanaged.XML
 {
     public readonly struct Token(uint position, uint length, Token.Type type)
     {
@@ -29,7 +31,9 @@
             }
             else if (type == Type.Text)
             {
-                return reader.GetText(this).ToString();
+                Span<char> buffer = stackalloc char[(int)length];
+                int l = reader.GetText(this, buffer);
+                return new string(buffer[..l]);
             }
             else
             {

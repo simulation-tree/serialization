@@ -62,11 +62,20 @@ namespace Unmanaged.XML
                 {
                     return attributes[index].Value;
                 }
-                else throw new IndexOutOfRangeException();
+                else throw new NullReferenceException($"No attribute {name.ToString()} found");
             }
             set
             {
-                SetAttribute(name, value);
+                for (uint i = 0; i < attributes.Count; i++)
+                {
+                    XMLAttribute attribute = attributes[i];
+                    if (attribute.Name.SequenceEqual(name))
+                    {
+                        attribute.Value = value;
+                    }
+                }
+
+                throw new NullReferenceException($"No attribute {name.ToString()} found");
             }
         }
 
@@ -87,6 +96,14 @@ namespace Unmanaged.XML
         public XMLNode()
         {
             name = new();
+            attributes = new();
+            content = new();
+            children = new();
+        }
+
+        public XMLNode(ReadOnlySpan<char> name)
+        {
+            this.name = new(name);
             attributes = new();
             content = new();
             children = new();
@@ -138,20 +155,20 @@ namespace Unmanaged.XML
 
             //read name
             token = xmlReader.ReadToken();
-            ReadOnlySpan<char> nameSpan = xmlReader.GetText(token);
-            name = new(nameSpan);
+            Span<char> nameBuffer = stackalloc char[256];
+            Span<char> valueBuffer = stackalloc char[256];
+            int length = xmlReader.GetText(token, nameBuffer);
+            name = new(nameBuffer[..length]);
 
             //read attributes inside first node
-            while (xmlReader.PeekToken(out token))
+            while (xmlReader.ReadToken(out token))
             {
                 if (token.type == Token.Type.Close)
                 {
-                    token = xmlReader.ReadToken();
                     break; //exit first node (assume there will be a closing node)
                 }
                 else if (token.type == Token.Type.Slash)
                 {
-                    token = xmlReader.ReadToken();
                     token = xmlReader.ReadToken();
                     if (token.type == Token.Type.Close)
                     {
@@ -162,8 +179,10 @@ namespace Unmanaged.XML
                 }
                 else
                 {
-                    ReadOnlySpan<char> value = xmlReader.ReadAttribute(out ReadOnlySpan<char> name);
-                    XMLAttribute attribute = new(name, value);
+                    length = xmlReader.GetText(token, nameBuffer);
+                    token = xmlReader.ReadToken();
+                    int valueLength = xmlReader.GetText(token, valueBuffer);
+                    XMLAttribute attribute = new(nameBuffer[..length], valueBuffer[..valueLength]);
                     attributes.Add(attribute);
                 }
             }
@@ -175,26 +194,30 @@ namespace Unmanaged.XML
                 {
                     if (token.type == Token.Type.Open)
                     {
-                        reader.Position -= sizeof(char);
+                        reader.Position -= token.length;
                         XMLNode child = xmlReader.ReadNode();
                         children.Add(child);
                     }
                     else
                     {
-                        ReadOnlySpan<char> contentSpan = xmlReader.GetText(token);
-                        content.AddRange(contentSpan);
+                        using UnmanagedArray<char> temp = new(token.length);
+                        Span<char> tempSpan = temp.AsSpan();
+                        int written = reader.PeekUTF8Span(token.position, token.length, tempSpan);
+                        content.AddRange(tempSpan[..written]);
+                        reader.Position = token.position + token.length;
                     }
 
                     if (xmlReader.PeekToken(out Token next) && next.type == Token.Type.Open)
                     {
-                        xmlReader.PeekToken(next.position + sizeof(char), out next);
+                        xmlReader.PeekToken(next.position + next.length, out next);
                         if (next.type == Token.Type.Slash)
                         {
                             xmlReader.ReadToken(); //open
                             xmlReader.ReadToken(); //slash
                             if (xmlReader.ReadToken(out next) && next.type == Token.Type.Text)
                             {
-                                ReadOnlySpan<char> closingName = xmlReader.GetText(next);
+                                length = xmlReader.GetText(next, nameBuffer);
+                                ReadOnlySpan<char> closingName = nameBuffer[..length];
                                 if (closingName.SequenceEqual(Name))
                                 {
                                     next = xmlReader.ReadToken(); //close
@@ -405,7 +428,11 @@ namespace Unmanaged.XML
             throw new IndexOutOfRangeException();
         }
 
-        public readonly void SetAttribute(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
+        /// <summary>
+        /// Creates a new attribute or assigns an existing one to the given value.
+        /// </summary>
+        /// <returns><c>true</c> if it was created, otherwise it was set</returns>
+        public readonly bool SetAttribute(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
         {
             for (uint i = 0; i < attributes.Count; i++)
             {
@@ -413,12 +440,13 @@ namespace Unmanaged.XML
                 if (attribute.Name.SequenceEqual(name))
                 {
                     attribute.Value = value;
-                    return;
+                    return false;
                 }
             }
 
             XMLAttribute newAttribute = new(name, value);
             attributes.Add(newAttribute);
+            return true;
         }
 
         public readonly bool RemoveAttribute(ReadOnlySpan<char> name)

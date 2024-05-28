@@ -36,7 +36,8 @@ namespace Serialization.Tests
             };
 
             string jsonString = json.ToString();
-            JSONObject obj = new(jsonString.AsSpan());
+            using BinaryReader reader = BinaryReader.CreateFromUTF8(jsonString);
+            JSONObject obj = reader.ReadObject<JSONObject>();
             Assert.That(obj.GetText("name").ToString(), Is.EqualTo("John Doe"));
             Assert.That(obj.GetNumber("age"), Is.EqualTo(42));
             Assert.That(obj.GetBoolean("isAlive"), Is.True);
@@ -130,22 +131,26 @@ namespace Serialization.Tests
             settings.Add("another", "aA");
 
             List<(string name, object? value)> settingsList = new();
-            using JSONReader reader = new(settings.ToString());
-            reader.ReadToken(); //{
-            while (reader.ReadToken(out Token token))
+            using BinaryReader reader = BinaryReader.CreateFromUTF8(settings.ToString());
+            JSONReader jsonReader = new(reader);
+            jsonReader.ReadToken(); //{
+            Span<char> buffer = stackalloc char[32];
+            while (jsonReader.ReadToken(out Token token))
             {
                 if (token.type == Token.Type.Text)
                 {
-                    string name = reader.GetText(token).ToString();
-                    Token next = reader.ReadToken();
+                    int length = jsonReader.GetText(token, buffer);
+                    string name = buffer[..length].ToString();
+                    Token next = jsonReader.ReadToken();
                     if (next.type == Token.Type.Text)
                     {
-                        string value = reader.GetText(next).ToString();
+                        length = jsonReader.GetText(next, buffer);
+                        string value = buffer[..length].ToString();
                         settingsList.Add((name, value));
                     }
                     else if (next.type == Token.Type.Number)
                     {
-                        double value = reader.GetNumber(next);
+                        double value = jsonReader.GetNumber(next);
                         settingsList.Add((name, value));
                     }
                     else if (next.type == Token.Type.True)
@@ -196,7 +201,8 @@ namespace Serialization.Tests
 
             json.Add("inventory", inventory);
             string jsonString = json.ToJsonString(new JsonSerializerOptions() { WriteIndented = false });
-            JSONObject obj = new(jsonString.AsSpan());
+            using BinaryReader reader = BinaryReader.CreateFromUTF8(jsonString);
+            JSONObject obj = reader.ReadObject<JSONObject>();
             JSONArray array = obj.GetArray("inventory");
             Assert.That(array.Count, Is.EqualTo(32));
             string otherString = obj.ToString();
@@ -208,18 +214,21 @@ namespace Serialization.Tests
         public void DeserializeIntoStruct()
         {
             var g = Guid.NewGuid();
+            bool rare = g.GetHashCode() % 2 == 0;
             using JSONObject item = new();
             item.Add("name", "Item 25");
             item.Add("value", g.ToString());
             item.Add("quantity", g.GetHashCode() % 7);
-            item.Add("isRare", g.GetHashCode() % 2 == 0);
+            item.Add("isRare", rare);
 
-            using JSONReader reader = new(item.ToString());
-            using DummyJSONObject dummy = reader.ReadObject<DummyJSONObject>();
+            string str = item.ToString();
+            using BinaryReader reader = BinaryReader.CreateFromUTF8(str);
+            JSONReader jsonReader = new(reader);
+            using DummyJSONObject dummy = jsonReader.ReadObject<DummyJSONObject>();
             Assert.That(dummy.Name.ToString(), Is.EqualTo("Item 25"));
             Assert.That(dummy.Value.ToString(), Is.EqualTo(g.ToString()));
             Assert.That(dummy.quantity, Is.EqualTo(g.GetHashCode() % 7));
-            Assert.That(dummy.isRare, Is.EqualTo(g.GetHashCode() % 2 == 0));
+            Assert.That(dummy.isRare, Is.EqualTo(rare));
         }
 
         [Test]
@@ -244,7 +253,8 @@ namespace Serialization.Tests
             }
 
             inventory.Add("inventory", array);
-            using JSONObject obj = new(inventory.ToString());
+            using BinaryReader reader = BinaryReader.CreateFromUTF8(inventory.ToString());
+            using JSONObject obj = reader.ReadObject<JSONObject>();
             JSONArray items = obj.GetArray("inventory");
             Assert.That(items.Count, Is.EqualTo(32));
             for (uint i = 0; i < items.Count; i++)
@@ -275,7 +285,8 @@ namespace Serialization.Tests
 
             json.Add("inventory", inventory);
 
-            using JSONObject jsonObject = new(json.ToString());
+            using BinaryReader reader = BinaryReader.CreateFromUTF8(json.ToString());
+            using JSONObject jsonObject = reader.ReadObject<JSONObject>();
             JSONArray array = jsonObject.GetArray("inventory");
             Assert.That(array.Count, Is.EqualTo(32));
             for (uint i = 0; i < array.Count; i++)
@@ -291,7 +302,7 @@ namespace Serialization.Tests
             }
         }
 
-        public struct DummyJSONObject : IJSONObject, IDisposable
+        public struct DummyJSONObject : IJSONSerializable, IDisposable
         {
             public int quantity;
             public bool isRare;
@@ -316,15 +327,22 @@ namespace Serialization.Tests
                 value.Dispose();
             }
 
-            void IJSONObject.Read(ref JSONReader reader)
+            void IJSONSerializable.Read(JSONReader reader)
             {
-                name = new(reader.ReadText(out _));
-                value = new(reader.ReadText(out _));
-                quantity = (int)reader.ReadNumber(out _);
-                isRare = reader.ReadBoolean(out _);
+                Span<char> buffer = stackalloc char[64];
+                reader.ReadToken();
+                int length = reader.ReadText(buffer);
+                name = new(buffer[..length]);
+                reader.ReadToken();
+                length = reader.ReadText(buffer);
+                value = new(buffer[..length]);
+                reader.ReadToken();
+                quantity = (int)reader.ReadNumber();
+                reader.ReadToken();
+                isRare = reader.ReadBoolean();
             }
 
-            void IJSONObject.Write(JSONWriter writer)
+            void IJSONSerializable.Write(JSONWriter writer)
             {
                 writer.WriteProperty(nameof(name), name.AsSpan());
                 writer.WriteProperty(nameof(value), value.AsSpan());

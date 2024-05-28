@@ -57,14 +57,7 @@ namespace Unmanaged.JSON
         {
             get
             {
-                if (IsNumber)
-                {
-                    return ref value.AsRef<double>();
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Property is not of type {Type.Number}");
-                }
+                return ref value.AsRef<double>();
             }
         }
 
@@ -72,14 +65,7 @@ namespace Unmanaged.JSON
         {
             get
             {
-                if (IsBoolean)
-                {
-                    return ref value.AsRef<bool>();
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Property is not of type {Type.Boolean}");
-                }
+                return ref value.AsRef<bool>();
             }
         }
 
@@ -87,14 +73,7 @@ namespace Unmanaged.JSON
         {
             get
             {
-                if (IsObject)
-                {
-                    return value.AsRef<JSONObject>();
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Property is not of type {Type.Object}");
-                }
+                return value.AsRef<JSONObject>();
             }
             set
             {
@@ -114,14 +93,7 @@ namespace Unmanaged.JSON
         {
             get
             {
-                if (IsArray)
-                {
-                    return value.AsRef<JSONArray>();
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Property is not of type {Type.Array}");
-                }
+                return value.AsRef<JSONArray>();
             }
             set
             {
@@ -278,7 +250,7 @@ namespace Unmanaged.JSON
         {
             if (IsText)
             {
-                text = value.AsSpan<char>(0, length / sizeof(char));
+                text = Text;
                 return true;
             }
 
@@ -290,7 +262,7 @@ namespace Unmanaged.JSON
         {
             if (IsNumber)
             {
-                number = value.AsRef<double>();
+                number = Number;
                 return true;
             }
 
@@ -314,8 +286,7 @@ namespace Unmanaged.JSON
         {
             if (IsObject)
             {
-                void* ptr = (void*)value.AsRef<nint>();
-                obj = new(ptr);
+                obj = Object;
                 return true;
             }
 
@@ -327,8 +298,7 @@ namespace Unmanaged.JSON
         {
             if (IsArray)
             {
-                void* ptr = (void*)value.AsRef<nint>();
-                array = new(ptr);
+                array = Array;
                 return true;
             }
 
