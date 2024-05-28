@@ -1,6 +1,6 @@
 ﻿namespace Unmanaged.JSON
 {
-    public readonly struct JSONToken(uint position, uint length, JSONToken.Type type)
+    public readonly struct Token(uint position, uint length, Token.Type type)
     {
         public readonly uint position = position;
         public readonly uint length = length;

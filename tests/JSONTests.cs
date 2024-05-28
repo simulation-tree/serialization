@@ -132,31 +132,31 @@ namespace Serialization.Tests
             List<(string name, object? value)> settingsList = new();
             using JSONReader reader = new(settings.ToString());
             reader.ReadToken(); //{
-            while (reader.ReadToken(out JSONToken token))
+            while (reader.ReadToken(out Token token))
             {
-                if (token.type == JSONToken.Type.Text)
+                if (token.type == Token.Type.Text)
                 {
                     string name = reader.GetText(token).ToString();
-                    JSONToken next = reader.ReadToken();
-                    if (next.type == JSONToken.Type.Text)
+                    Token next = reader.ReadToken();
+                    if (next.type == Token.Type.Text)
                     {
                         string value = reader.GetText(next).ToString();
                         settingsList.Add((name, value));
                     }
-                    else if (next.type == JSONToken.Type.Number)
+                    else if (next.type == Token.Type.Number)
                     {
                         double value = reader.GetNumber(next);
                         settingsList.Add((name, value));
                     }
-                    else if (next.type == JSONToken.Type.True)
+                    else if (next.type == Token.Type.True)
                     {
                         settingsList.Add((name, true));
                     }
-                    else if (next.type == JSONToken.Type.False)
+                    else if (next.type == Token.Type.False)
                     {
                         settingsList.Add((name, false));
                     }
-                    else if (next.type == JSONToken.Type.Null)
+                    else if (next.type == Token.Type.Null)
                     {
                         settingsList.Add((name, null));
                     }
@@ -316,7 +316,7 @@ namespace Serialization.Tests
                 value.Dispose();
             }
 
-            void IJSONObject.Deserialize(ref JSONReader reader)
+            void IJSONObject.Read(ref JSONReader reader)
             {
                 name = new(reader.ReadText(out _));
                 value = new(reader.ReadText(out _));
@@ -324,7 +324,7 @@ namespace Serialization.Tests
                 isRare = reader.ReadBoolean(out _);
             }
 
-            void IJSONObject.Serialize(JSONWriter writer)
+            void IJSONObject.Write(JSONWriter writer)
             {
                 writer.WriteProperty(nameof(name), name.AsSpan());
                 writer.WriteProperty(nameof(value), value.AsSpan());

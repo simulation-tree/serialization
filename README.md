@@ -1,8 +1,10 @@
 # Serialization
-Unmanaged library for working with JSON using readers and writers with bytes directly.
+Unmanaged library for working with JSON and XML using readers and writers with bytes directly.
+As well as intermediary types for representing objects within the supported formats.
 
 ### Reader and writer
-The reader and writer are used to iteratively progress over the JSON object.
+The reader and writers are used to iteratively progress over data. How the data
+is stored should be known ahead of time (and can be tested).
 ```cs
 using JSONWriter writer = new();
 writer.WriteStartObject();
@@ -113,4 +115,18 @@ byte[] jsonBytes = File.ReadAllBytes("player.json");
 using JSONReader reader = new(jsonBytes);
 using Player player = reader.ReadObject<Player>();
 ReadOnlySpan<char> name = player.Name;
+```
+
+### XML
+XML is supported through the `XMLNode` type, which can be created from either a byte or a char array.
+Each node has a name, content, and a list of children. Attributes can be read using the indexer.
+```csharp
+byte[] xmlData = File.ReadAllBytes("solution.csproj");
+using XMLNode project = new(xmlData);
+XMLAttribute sdk = project["Sdk"];
+sdk.Value = "Simulation.NET.Sdk";
+project.TryGetFirst("PropertyGroup", out XMLNode propertyGroup);
+project.TryGetFirst("TargetFramework", out XMLNode tfm);
+tfm.Content = "net9.0";
+File.WriteAllText("solution.csproj", project.ToString());
 ```

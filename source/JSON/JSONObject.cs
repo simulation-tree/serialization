@@ -103,10 +103,10 @@ namespace Unmanaged.JSON
             ThrowIfDisposed();
             T value = default;
             using UnmanagedList<char> result = new();
-            ToString(result, default);
+            ToString(result);
             JSONReader reader = new(result.AsSpan());
             reader.ReadToken(out _);
-            value.Deserialize(ref reader);
+            value.Read(ref reader);
             reader.Dispose();
             return value;
         }
@@ -114,9 +114,9 @@ namespace Unmanaged.JSON
         public readonly void ParseFrom(ref JSONReader reader)
         {
             ThrowIfDisposed();
-            if (reader.PeekToken(out JSONToken nextToken))
+            if (reader.PeekToken(out Token nextToken))
             {
-                if (nextToken.type == JSONToken.Type.StartObject)
+                if (nextToken.type == Token.Type.StartObject)
                 {
                     reader.ReadToken(out _);
                 }
@@ -127,48 +127,48 @@ namespace Unmanaged.JSON
             static void ParseObject(ref JSONReader reader, JSONObject jsonObject)
             {
                 Span<char> name = stackalloc char[256];
-                while (reader.ReadToken(out JSONToken token))
+                while (reader.ReadToken(out Token token))
                 {
-                    if (token.type == JSONToken.Type.Text)
+                    if (token.type == Token.Type.Text)
                     {
                         name.Clear();
                         ReadOnlySpan<char> source = reader.GetText(token);
                         source.CopyTo(name);
-                        if (reader.ReadToken(out JSONToken nextToken))
+                        if (reader.ReadToken(out Token nextToken))
                         {
-                            if (nextToken.type == JSONToken.Type.True)
+                            if (nextToken.type == Token.Type.True)
                             {
                                 jsonObject.Add(name[..source.Length], true);
                             }
-                            else if (nextToken.type == JSONToken.Type.False)
+                            else if (nextToken.type == Token.Type.False)
                             {
                                 jsonObject.Add(name[..source.Length], false);
                             }
-                            else if (nextToken.type == JSONToken.Type.Null)
+                            else if (nextToken.type == Token.Type.Null)
                             {
                                 jsonObject.AddNull(name[..source.Length]);
                             }
-                            else if (nextToken.type == JSONToken.Type.Number)
+                            else if (nextToken.type == Token.Type.Number)
                             {
                                 jsonObject.Add(name[..source.Length], reader.GetNumber(nextToken));
                             }
-                            else if (nextToken.type == JSONToken.Type.Text)
+                            else if (nextToken.type == Token.Type.Text)
                             {
                                 jsonObject.Add(name[..source.Length], reader.GetText(nextToken));
                             }
-                            else if (nextToken.type == JSONToken.Type.StartObject)
+                            else if (nextToken.type == Token.Type.StartObject)
                             {
                                 JSONObject obj = new();
                                 obj.ParseFrom(ref reader);
                                 jsonObject.Add(name[..source.Length], obj);
                             }
-                            else if (nextToken.type == JSONToken.Type.StartArray)
+                            else if (nextToken.type == Token.Type.StartArray)
                             {
                                 JSONArray array = new();
                                 array.ParseFrom(ref reader);
                                 jsonObject.Add(name[..source.Length], array);
                             }
-                            else if (nextToken.type == JSONToken.Type.EndObject)
+                            else if (nextToken.type == Token.Type.EndObject)
                             {
                                 break;
                             }
@@ -182,7 +182,7 @@ namespace Unmanaged.JSON
                             throw new InvalidOperationException($"Invalid JSON token at position {token.position}, expected value.");
                         }
                     }
-                    else if (token.type == JSONToken.Type.EndObject)
+                    else if (token.type == Token.Type.EndObject)
                     {
                         break;
                     }

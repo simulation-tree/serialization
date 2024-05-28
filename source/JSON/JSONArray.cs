@@ -52,41 +52,41 @@ namespace Unmanaged.JSON
             ParseArray(ref reader, this);
             static void ParseArray(ref JSONReader reader, JSONArray jsonArray)
             {
-                while (reader.ReadToken(out JSONToken token))
+                while (reader.ReadToken(out Token token))
                 {
-                    if (token.type == JSONToken.Type.True)
+                    if (token.type == Token.Type.True)
                     {
                         jsonArray.Add(reader.GetBoolean(token));
                     }
-                    else if (token.type == JSONToken.Type.False)
+                    else if (token.type == Token.Type.False)
                     {
                         jsonArray.Add(reader.GetBoolean(token));
                     }
-                    else if (token.type == JSONToken.Type.Null)
+                    else if (token.type == Token.Type.Null)
                     {
                         jsonArray.AddNull();
                     }
-                    else if (token.type == JSONToken.Type.Number)
+                    else if (token.type == Token.Type.Number)
                     {
                         jsonArray.Add(reader.GetNumber(token));
                     }
-                    else if (token.type == JSONToken.Type.Text)
+                    else if (token.type == Token.Type.Text)
                     {
                         jsonArray.Add(reader.GetText(token));
                     }
-                    else if (token.type == JSONToken.Type.StartObject)
+                    else if (token.type == Token.Type.StartObject)
                     {
                         JSONObject newObject = new();
                         newObject.ParseFrom(ref reader);
                         jsonArray.Add(newObject);
                     }
-                    else if (token.type == JSONToken.Type.StartArray)
+                    else if (token.type == Token.Type.StartArray)
                     {
                         JSONArray newArray = new();
                         newArray.ParseFrom(ref reader);
                         jsonArray.Add(newArray);
                     }
-                    else if (token.type == JSONToken.Type.EndArray)
+                    else if (token.type == Token.Type.EndArray)
                     {
                         break;
                     }
