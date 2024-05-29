@@ -38,6 +38,17 @@ namespace Serialization.Tests
         }
 
         [Test]
+        public void TryReadJSONAsXML()
+        {
+            using BinaryReader reader = BinaryReader.CreateFromUTF8("{\"some\":true,\"kind\":7,\"of\":\"json\"}");
+            XMLReader xmlReader = new(reader);
+            while (xmlReader.ReadToken(out Token token))
+            {
+                Console.WriteLine(token.ToString(xmlReader));
+            }
+        }
+
+        [Test]
         public void ModifyXML()
         {
             using BinaryReader reader = BinaryReader.CreateFromUTF8(XMLDummy);

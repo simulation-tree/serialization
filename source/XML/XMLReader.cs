@@ -126,7 +126,10 @@ namespace Unmanaged.XML
             return read;
         }
 
-        public XMLNode ReadNode()
+        /// <summary>
+        /// Reads and creates a new <see cref="XMLNode"/> instance.
+        /// </summary>
+        public readonly XMLNode ReadNode()
         {
             return reader.ReadObject<XMLNode>();
         }

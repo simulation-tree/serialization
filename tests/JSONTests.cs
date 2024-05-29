@@ -243,6 +243,30 @@ namespace Serialization.Tests
         }
 
         [Test]
+        public void TryReadXMLAsJSON()
+        {
+            BinaryReader reader = BinaryReader.CreateFromUTF8("<Project Sdk=\"Microshaft.Sdk.blabla\"><Some>5</Some></Project>");
+            JSONReader jsonReader = new(reader);
+            while (true)
+            {
+                try
+                {
+                    if (jsonReader.ReadToken(out Token token))
+                    {
+                        Console.WriteLine(token.ToString(jsonReader));
+                    }
+                }
+                catch (Exception)
+                {
+                    break;
+                }
+            }
+
+            reader.Dispose();
+            Assert.That(Allocations.Count, Is.EqualTo(0));
+        }
+
+        [Test]
         public void DeserializeArray()
         {
             using JSONObject inventory = new();
