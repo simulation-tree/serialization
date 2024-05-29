@@ -179,11 +179,11 @@ namespace Unmanaged.JSON
                 }
                 else
                 {
-                    break;
+                    throw new InvalidOperationException($"Expected token for property name but found {token.type}");
                 }
             }
 
-            throw new InvalidOperationException("Expected token for property name");
+            throw new InvalidOperationException("Expected token for boolean but none more found");
         }
 
         public T ReadObject<T>() where T : unmanaged, IJSONSerializable
@@ -198,6 +198,11 @@ namespace Unmanaged.JSON
                 {
                     T obj = default;
                     obj.Read(this);
+                    if (PeekToken(out var peek) && peek.type == Token.Type.EndObject)
+                    {
+                        ReadToken();
+                    }
+
                     return obj;
                 }
                 else
