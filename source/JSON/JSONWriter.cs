@@ -26,7 +26,7 @@ namespace Unmanaged.JSON
 
         public unsafe readonly ReadOnlySpan<char> AsSpan()
         {
-            uint length = writer.Length / sizeof(char);
+            uint length = writer.Position / sizeof(char);
             return new((void*)writer.Address, (int)length);
         }
 
@@ -42,31 +42,31 @@ namespace Unmanaged.JSON
 
         public void WriteStartObject()
         {
-            last = new(writer.Length, sizeof(char), Token.Type.StartObject);
+            last = new(writer.Position, sizeof(char), Token.Type.StartObject);
             writer.WriteValue('{');
         }
 
         public void WriteEndObject()
         {
-            last = new(writer.Length, sizeof(char), Token.Type.EndObject);
+            last = new(writer.Position, sizeof(char), Token.Type.EndObject);
             writer.WriteValue('}');
         }
 
         public void WriteStartArray()
         {
-            last = new(writer.Length, sizeof(char), Token.Type.StartArray);
+            last = new(writer.Position, sizeof(char), Token.Type.StartArray);
             writer.WriteValue('[');
         }
 
         public void WriteEndArray()
         {
-            last = new(writer.Length, sizeof(char), Token.Type.EndArray);
+            last = new(writer.Position, sizeof(char), Token.Type.EndArray);
             writer.WriteValue(']');
         }
 
         public void WriteText(ReadOnlySpan<char> value)
         {
-            last = new(writer.Length, (uint)(sizeof(char) * (2 + value.Length)), Token.Type.Text);
+            last = new(writer.Position, (uint)(sizeof(char) * (2 + value.Length)), Token.Type.Text);
             writer.WriteValue('"');
             writer.WriteSpan(value);
             writer.WriteValue('"');
@@ -77,7 +77,7 @@ namespace Unmanaged.JSON
             Span<char> buffer = stackalloc char[32];
             number.TryFormat(buffer, out int charsWritten);
 
-            last = new(writer.Length, (uint)(sizeof(char) * charsWritten), Token.Type.Number);
+            last = new(writer.Position, (uint)(sizeof(char) * charsWritten), Token.Type.Number);
             writer.WriteSpan<char>(buffer[..charsWritten]);
         }
 
@@ -85,19 +85,19 @@ namespace Unmanaged.JSON
         {
             if (value)
             {
-                last = new(writer.Length, sizeof(char) * 4, Token.Type.True);
+                last = new(writer.Position, sizeof(char) * 4, Token.Type.True);
                 writer.WriteSpan("true".AsSpan());
             }
             else
             {
-                last = new(writer.Length, sizeof(char) * 5, Token.Type.False);
+                last = new(writer.Position, sizeof(char) * 5, Token.Type.False);
                 writer.WriteSpan("false".AsSpan());
             }
         }
 
         public void WriteNull()
         {
-            last = new(writer.Length, sizeof(char) * 4, Token.Type.Null);
+            last = new(writer.Position, sizeof(char) * 4, Token.Type.Null);
             writer.WriteSpan("null".AsSpan());
         }
 
