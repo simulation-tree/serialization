@@ -20,31 +20,31 @@ namespace Unmanaged.XML
 
         public readonly void WriteStartObject()
         {
-            writer.WriteValue('<');
+            writer.WriteUTF8('<');
         }
 
         public readonly void WriteEndObject()
         {
-            writer.WriteValue('>');
+            writer.WriteUTF8('>');
         }
 
         public readonly void WriteSlash()
         {
-            writer.WriteValue('/');
+            writer.WriteUTF8('/');
         }
 
         public readonly void WriteAttribute(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
         {
-            writer.WriteSpan(name);
-            writer.WriteValue('=');
-            writer.WriteValue('"');
-            writer.WriteSpan(value);
-            writer.WriteValue('"');
+            writer.WriteUTF8Span(name);
+            writer.WriteUTF8('=');
+            writer.WriteUTF8('"');
+            writer.WriteUTF8Span(value);
+            writer.WriteUTF8('"');
         }
 
         public readonly void WriteText(ReadOnlySpan<char> value)
         {
-            writer.WriteSpan(value);
+            writer.WriteUTF8Span(value);
         }
     }
 }

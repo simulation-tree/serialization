@@ -1,4 +1,5 @@
 ﻿using System;
+using Unmanaged.Collections;
 
 namespace Unmanaged.JSON
 {
@@ -8,6 +9,7 @@ namespace Unmanaged.JSON
         private Token last;
 
         public readonly bool IsDisposed => writer.IsDisposed;
+        public readonly uint Position => writer.Position;
 
         public JSONWriter()
         {
@@ -21,16 +23,14 @@ namespace Unmanaged.JSON
 
         public override readonly string ToString()
         {
-            return AsSpan().ToString();
+            using BinaryReader reader = new(AsSpan());
+            using UnmanagedArray<char> buffer = new(Position * 2);
+            Span<char> bufferSpan = buffer.AsSpan();
+            int length = reader.ReadUTF8Span(bufferSpan);
+            return new(bufferSpan[..length]);
         }
 
-        public unsafe readonly ReadOnlySpan<char> AsSpan()
-        {
-            uint length = writer.Position / sizeof(char);
-            return new((void*)writer.Address, (int)length);
-        }
-
-        public readonly Span<byte> GetBytes()
+        public readonly Span<byte> AsSpan()
         {
             return writer.AsSpan();
         }
@@ -43,33 +43,46 @@ namespace Unmanaged.JSON
         public void WriteStartObject()
         {
             last = new(writer.Position, sizeof(char), Token.Type.StartObject);
-            writer.WriteValue('{');
+            writer.WriteUTF8('{');
         }
 
         public void WriteEndObject()
         {
             last = new(writer.Position, sizeof(char), Token.Type.EndObject);
-            writer.WriteValue('}');
+            writer.WriteUTF8('}');
         }
 
         public void WriteStartArray()
         {
             last = new(writer.Position, sizeof(char), Token.Type.StartArray);
-            writer.WriteValue('[');
+            writer.WriteUTF8('[');
         }
 
         public void WriteEndArray()
         {
             last = new(writer.Position, sizeof(char), Token.Type.EndArray);
-            writer.WriteValue(']');
+            writer.WriteUTF8(']');
         }
 
-        public void WriteText(ReadOnlySpan<char> value)
+        private void WriteText(ReadOnlySpan<char> value)
         {
             last = new(writer.Position, (uint)(sizeof(char) * (2 + value.Length)), Token.Type.Text);
-            writer.WriteValue('"');
-            writer.WriteSpan(value);
-            writer.WriteValue('"');
+            writer.WriteUTF8('"');
+            writer.WriteUTF8Span(value);
+            writer.WriteUTF8('"');
+        }
+
+        /// <summary>
+        /// Writes the given text value assuming its an element inside an array.
+        /// </summary>
+        public void WriteTextElement(ReadOnlySpan<char> value)
+        {
+            if (last.type != Token.Type.StartObject && last.type != Token.Type.StartArray && last.type != Token.Type.Unknown)
+            {
+                writer.WriteUTF8(',');
+            }
+
+            WriteText(value);
         }
 
         public void WriteNumber(double number)
@@ -78,7 +91,7 @@ namespace Unmanaged.JSON
             number.TryFormat(buffer, out int charsWritten);
 
             last = new(writer.Position, (uint)(sizeof(char) * charsWritten), Token.Type.Number);
-            writer.WriteSpan<char>(buffer[..charsWritten]);
+            writer.WriteUTF8Span(buffer[..charsWritten]);
         }
 
         public void WriteBoolean(bool value)
@@ -86,26 +99,26 @@ namespace Unmanaged.JSON
             if (value)
             {
                 last = new(writer.Position, sizeof(char) * 4, Token.Type.True);
-                writer.WriteSpan("true".AsSpan());
+                writer.WriteUTF8Span("true".AsSpan());
             }
             else
             {
                 last = new(writer.Position, sizeof(char) * 5, Token.Type.False);
-                writer.WriteSpan("false".AsSpan());
+                writer.WriteUTF8Span("false".AsSpan());
             }
         }
 
         public void WriteNull()
         {
             last = new(writer.Position, sizeof(char) * 4, Token.Type.Null);
-            writer.WriteSpan("null".AsSpan());
+            writer.WriteUTF8Span("null".AsSpan());
         }
 
-        public readonly void WriteObject<T>(T obj) where T : unmanaged, IJSONSerializable
+        public void WriteObject<T>(T obj) where T : unmanaged, IJSONSerializable
         {
-            writer.WriteValue('{');
+            WriteStartObject();
             obj.Write(this);
-            writer.WriteValue('}');
+            WriteEndObject();
         }
 
         /// <summary>
@@ -115,11 +128,11 @@ namespace Unmanaged.JSON
         {
             if (last.type != Token.Type.StartObject && last.type != Token.Type.StartArray && last.type != Token.Type.Unknown)
             {
-                writer.WriteValue(',');
+                writer.WriteUTF8(',');
             }
 
             WriteText(name);
-            writer.WriteValue(':');
+            writer.WriteUTF8(':');
         }
 
         public void WriteProperty(ReadOnlySpan<char> name, ReadOnlySpan<char> text)
