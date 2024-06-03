@@ -327,7 +327,7 @@ namespace Unmanaged.XML
 
         public readonly bool Remove(XMLNode node)
         {
-            return children.Remove(node);
+            return children.TryRemove(node);
         }
 
         public readonly uint IndexOf(XMLNode node)
