@@ -10,7 +10,7 @@ namespace Unmanaged.XML
 
         public XMLWriter()
         {
-            writer = new();
+            writer = BinaryWriter.Create();
         }
 
         public readonly void Dispose()

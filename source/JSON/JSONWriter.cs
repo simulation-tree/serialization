@@ -11,10 +11,13 @@ namespace Unmanaged.JSON
         public readonly bool IsDisposed => writer.IsDisposed;
         public readonly uint Position => writer.Position;
 
+#if NET5_0_OR_GREATER
+        [Obsolete("Use Create() method or other constructor", true)]
         public JSONWriter()
         {
-            writer = new();
+            throw new NotImplementedException();
         }
+#endif
 
         public JSONWriter(BinaryWriter writer)
         {
@@ -157,6 +160,11 @@ namespace Unmanaged.JSON
         {
             WriteName(name);
             WriteObject(obj);
+        }
+
+        public static JSONWriter Create()
+        {
+            return new(BinaryWriter.Create());
         }
     }
 }

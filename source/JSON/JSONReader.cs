@@ -8,6 +8,14 @@ namespace Unmanaged.JSON
 
         public readonly bool IsDisposed => reader.IsDisposed;
 
+#if NET5_0_OR_GREATER
+        [Obsolete("Use Create() or other constructor", true)]
+        public JSONReader()
+        {
+            throw new NotImplementedException();
+        }
+#endif
+
         public JSONReader(BinaryReader reader)
         {
             this.reader = reader;

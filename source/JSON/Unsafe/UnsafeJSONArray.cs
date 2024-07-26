@@ -13,7 +13,7 @@ namespace Unmanaged.JSON.Array
 
         public static UnsafeJSONArray* Allocate()
         {
-            UnmanagedList<JSONProperty> elements = new();
+            UnmanagedList<JSONProperty> elements = UnmanagedList<JSONProperty>.Create();
             UnsafeJSONArray* obj = Allocations.Allocate<UnsafeJSONArray>();
             obj[0] = new(elements);
             return obj;

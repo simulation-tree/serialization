@@ -16,6 +16,25 @@ namespace Serialization.Tests
         }
 
         [Test]
+        public void ReadXMLTokens()
+        {
+            using BinaryReader reader = BinaryReader.CreateFromUTF8(XMLDummy);
+            XMLReader xmlReader = new(reader);
+            List<string> tokens = new();
+            while (xmlReader.ReadToken(out Token token))
+            {
+                tokens.Add(token.ToString(xmlReader));
+            }
+
+            Assert.That(tokens[0], Is.EqualTo("<"));
+            Assert.That(tokens[1], Is.EqualTo("Project"));
+            Assert.That(tokens[2], Is.EqualTo("Sdk"));
+            Assert.That(tokens[3], Is.EqualTo("Microsoft.NET.Sdk"));
+            Assert.That(tokens[4], Is.EqualTo(">"));
+            Assert.That(tokens[5], Is.EqualTo("<"));
+        }
+
+        [Test]
         public void DeserializeXML()
         {
             using BinaryReader reader = BinaryReader.CreateFromUTF8(XMLDummy);

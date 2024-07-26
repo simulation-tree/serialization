@@ -85,7 +85,7 @@ namespace Unmanaged.XML
 
         public readonly override string ToString()
         {
-            UnmanagedList<char> list = new();
+            UnmanagedList<char> list = UnmanagedList<char>.Create();
             ToString(list);
             string text = list.AsSpan().ToString();
             list.Dispose();

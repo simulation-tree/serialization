@@ -13,7 +13,7 @@ namespace Unmanaged.JSON.Unsafe
 
         public static UnsafeJSONObject* Allocate()
         {
-            UnmanagedList<JSONProperty> properties = new();
+            UnmanagedList<JSONProperty> properties = UnmanagedList<JSONProperty>.Create();
             UnsafeJSONObject* obj = Allocations.Allocate<UnsafeJSONObject>();
             obj[0] = new(properties);
             return obj;

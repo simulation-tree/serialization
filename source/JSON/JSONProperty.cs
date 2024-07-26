@@ -213,7 +213,7 @@ namespace Unmanaged.JSON
             }
             else if (type == Type.Boolean)
             {
-                result.AddRange(Boolean ? "true" : "false");
+                result.AddRange(Boolean ? "true".AsSpan() : "false".AsSpan());
             }
             else if (type == Type.Object)
             {
@@ -229,7 +229,7 @@ namespace Unmanaged.JSON
             }
             else if (type == Type.Null)
             {
-                result.AddRange("null");
+                result.AddRange("null".AsSpan());
             }
             else
             {

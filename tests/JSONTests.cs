@@ -115,7 +115,7 @@ namespace Serialization.Tests
 
             jsonObject["age"].Number++;
 
-            using UnmanagedList<char> buffer = new();
+            using UnmanagedList<char> buffer = UnmanagedList<char>.Create();
             jsonObject.ToString(buffer, "    ", true, true);
             ReadOnlySpan<char> jsonText = buffer.AsSpan();
             Console.WriteLine(jsonText.ToString());
@@ -235,7 +235,7 @@ namespace Serialization.Tests
         public void SerializeFromStruct()
         {
             using DummyJSONObject dummy = new("abacus", "212-4", 32, false);
-            using JSONWriter writer = new();
+            using JSONWriter writer = JSONWriter.Create();
             writer.WriteObject(dummy);
             string jsonString = writer.ToString();
             Console.WriteLine(jsonString);

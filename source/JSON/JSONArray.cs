@@ -111,7 +111,7 @@ namespace Unmanaged.JSON
 
         public readonly override string ToString()
         {
-            UnmanagedList<char> result = new();
+            UnmanagedList<char> result = UnmanagedList<char>.Create();
             ToString(result);
             string text = result.AsSpan().ToString();
             result.Dispose();
@@ -195,7 +195,7 @@ namespace Unmanaged.JSON
 
         void ISerializable.Write(BinaryWriter writer)
         {
-            UnmanagedList<char> list = new();
+            UnmanagedList<char> list = UnmanagedList<char>.Create();
             ToString(list);
             writer.WriteUTF8Span(list.AsSpan());
             list.Dispose();

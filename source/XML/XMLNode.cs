@@ -95,18 +95,18 @@ namespace Unmanaged.XML
 
         public XMLNode()
         {
-            name = new();
-            attributes = new();
-            content = new();
-            children = new();
+            name = UnmanagedArray<char>.Create();
+            attributes = UnmanagedList<XMLAttribute>.Create();
+            content = UnmanagedList<char>.Create();
+            children = UnmanagedList<XMLNode>.Create();
         }
 
         public XMLNode(ReadOnlySpan<char> name)
         {
             this.name = new(name);
-            attributes = new();
-            content = new();
-            children = new();
+            attributes = UnmanagedList<XMLAttribute>.Create();
+            content = UnmanagedList<char>.Create();
+            children = UnmanagedList<XMLNode>.Create();
         }
 
         public void Dispose()
@@ -129,7 +129,7 @@ namespace Unmanaged.XML
 
         public readonly override string ToString()
         {
-            UnmanagedList<char> list = new();
+            UnmanagedList<char> list = UnmanagedList<char>.Create();
             ToString(list, "  ", true, true);
             string str = list.AsSpan().ToString();
             list.Dispose();
@@ -138,7 +138,7 @@ namespace Unmanaged.XML
 
         readonly void ISerializable.Write(BinaryWriter writer)
         {
-            UnmanagedList<char> list = new();
+            UnmanagedList<char> list = UnmanagedList<char>.Create();
             ToString(list);
             writer.WriteSpan<char>(list.AsSpan());
             list.Dispose();
@@ -146,9 +146,9 @@ namespace Unmanaged.XML
 
         void ISerializable.Read(BinaryReader reader)
         {
-            attributes = new();
-            content = new();
-            children = new();
+            attributes = UnmanagedList<XMLAttribute>.Create();
+            content = UnmanagedList<char>.Create();
+            children = UnmanagedList<XMLNode>.Create();
 
             XMLReader xmlReader = new(reader);
             Token token = xmlReader.ReadToken(); //<
