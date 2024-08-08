@@ -57,7 +57,7 @@ namespace Unmanaged.JSON
         {
             get
             {
-                return ref value.AsRef<double>();
+                return ref value.Read<double>();
             }
         }
 
@@ -65,7 +65,7 @@ namespace Unmanaged.JSON
         {
             get
             {
-                return ref value.AsRef<bool>();
+                return ref value.Read<bool>();
             }
         }
 
@@ -73,13 +73,13 @@ namespace Unmanaged.JSON
         {
             get
             {
-                return value.AsRef<JSONObject>();
+                return value.Read<JSONObject>();
             }
             set
             {
                 if (IsObject)
                 {
-                    this.value.AsRef<JSONObject>().Dispose();
+                    this.value.Read<JSONObject>().Dispose();
                     this.value.Write(value);
                 }
                 else
@@ -93,13 +93,13 @@ namespace Unmanaged.JSON
         {
             get
             {
-                return value.AsRef<JSONArray>();
+                return value.Read<JSONArray>();
             }
             set
             {
                 if (IsArray)
                 {
-                    this.value.AsRef<JSONArray>().Dispose();
+                    this.value.Read<JSONArray>().Dispose();
                     this.value.Write(value);
                 }
                 else
@@ -166,13 +166,13 @@ namespace Unmanaged.JSON
         {
             if (type == Type.Object)
             {
-                nint address = value.AsRef<nint>();
+                nint address = value.Read<nint>();
                 JSONObject jsonObject = new((void*)address);
                 jsonObject.Dispose();
             }
             else if (type == Type.Array)
             {
-                nint address = value.AsRef<nint>();
+                nint address = value.Read<nint>();
                 JSONArray jsonArray = new((void*)address);
                 jsonArray.Dispose();
             }
@@ -217,13 +217,13 @@ namespace Unmanaged.JSON
             }
             else if (type == Type.Object)
             {
-                void* ptr = (void*)value.AsRef<nint>();
+                void* ptr = (void*)value.Read<nint>();
                 JSONObject obj = new(ptr);
                 obj.ToString(result, indent, cr, lf, depth);
             }
             else if (type == Type.Array)
             {
-                void* ptr = (void*)value.AsRef<nint>();
+                void* ptr = (void*)value.Read<nint>();
                 JSONArray array = new(ptr);
                 array.ToString(result, indent, cr, lf, depth);
             }
@@ -274,7 +274,7 @@ namespace Unmanaged.JSON
         {
             if (IsBoolean)
             {
-                boolean = value.AsRef<bool>();
+                boolean = value.Read<bool>();
                 return true;
             }
 
