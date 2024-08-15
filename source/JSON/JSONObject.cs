@@ -5,6 +5,9 @@ using Unmanaged.JSON.Unsafe;
 
 namespace Unmanaged.JSON
 {
+    /// <summary>
+    /// Abstract object able to contain any JSON structure.
+    /// </summary>
     public unsafe struct JSONObject : IDisposable, ISerializable
     {
         private UnsafeJSONObject* value;
@@ -50,12 +53,15 @@ namespace Unmanaged.JSON
 
         public readonly nint Address => (nint)value;
 
+        /// <summary>
+        /// Creates a new empty JSON object.
+        /// </summary>
         public JSONObject()
         {
             value = UnsafeJSONObject.Allocate();
         }
 
-        public JSONObject(void* value)
+        internal JSONObject(void* value)
         {
             this.value = (UnsafeJSONObject*)value;
         }

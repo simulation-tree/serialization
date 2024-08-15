@@ -2,6 +2,9 @@ using System;
 
 namespace Unmanaged.JSON
 {
+    /// <summary>
+    /// A <see cref="BinaryWriter"/> wrapper for reading JSON.
+    /// </summary>
     public struct JSONReader
     {
         private BinaryReader reader;
@@ -16,6 +19,9 @@ namespace Unmanaged.JSON
         }
 #endif
 
+        /// <summary>
+        /// Creates a new wrapper around the given binary reader.
+        /// </summary>
         public JSONReader(BinaryReader reader)
         {
             this.reader = reader;
