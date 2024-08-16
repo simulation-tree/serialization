@@ -93,6 +93,7 @@ namespace Unmanaged.XML
 
         public readonly bool IsDisposed => name.IsDisposed;
 
+#if NET
         public XMLNode()
         {
             name = UnmanagedArray<char>.Create();
@@ -100,6 +101,7 @@ namespace Unmanaged.XML
             content = UnmanagedList<char>.Create();
             children = UnmanagedList<XMLNode>.Create();
         }
+#endif
 
         public XMLNode(ReadOnlySpan<char> name)
         {
@@ -107,6 +109,14 @@ namespace Unmanaged.XML
             attributes = UnmanagedList<XMLAttribute>.Create();
             content = UnmanagedList<char>.Create();
             children = UnmanagedList<XMLNode>.Create();
+        }
+
+        private XMLNode(UnmanagedArray<char> name, UnmanagedList<XMLAttribute> attributes, UnmanagedList<char> content, UnmanagedList<XMLNode> children)
+        {
+            this.name = name;
+            this.attributes = attributes;
+            this.content = content;
+            this.children = children;
         }
 
         public void Dispose()
@@ -477,6 +487,20 @@ namespace Unmanaged.XML
         public readonly override int GetHashCode()
         {
             return HashCode.Combine(name, attributes, content, children);
+        }
+
+        public static XMLNode Create(ReadOnlySpan<char> name)
+        {
+            return new XMLNode(name);
+        }
+
+        public static XMLNode Create()
+        {
+            UnmanagedArray<char> name = UnmanagedArray<char>.Create();
+            UnmanagedList<XMLAttribute> attributes = UnmanagedList<XMLAttribute>.Create();
+            UnmanagedList<char> content = UnmanagedList<char>.Create();
+            UnmanagedList<XMLNode> children = UnmanagedList<XMLNode>.Create();
+            return new XMLNode(name, attributes, content, children);
         }
 
         public static bool operator ==(XMLNode left, XMLNode right)

@@ -8,9 +8,16 @@ namespace Unmanaged.XML
 
         public readonly bool IsDisposed => writer.IsDisposed;
 
+#if NET
         public XMLWriter()
         {
             writer = BinaryWriter.Create();
+        }
+#endif
+
+        private XMLWriter(BinaryWriter writer)
+        {
+            this.writer = writer;
         }
 
         public readonly void Dispose()
@@ -45,6 +52,11 @@ namespace Unmanaged.XML
         public readonly void WriteText(ReadOnlySpan<char> value)
         {
             writer.WriteUTF8Span(value);
+        }
+
+        public static XMLWriter Create()
+        {
+            return new(BinaryWriter.Create());
         }
     }
 }

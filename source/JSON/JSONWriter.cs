@@ -11,8 +11,8 @@ namespace Unmanaged.JSON
         public readonly bool IsDisposed => writer.IsDisposed;
         public readonly uint Position => writer.Position;
 
-#if NET5_0_OR_GREATER
-        [Obsolete("Use Create() method or other constructor", true)]
+#if NET
+        [Obsolete("Default constructor not available", true)]
         public JSONWriter()
         {
             throw new NotImplementedException();
@@ -22,6 +22,7 @@ namespace Unmanaged.JSON
         public JSONWriter(BinaryWriter writer)
         {
             this.writer = writer;
+            last = default;
         }
 
         public override readonly string ToString()

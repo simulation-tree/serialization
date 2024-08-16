@@ -2,11 +2,18 @@
 
 namespace Unmanaged.JSON
 {
-    public readonly struct Token(uint position, uint length, Token.Type type)
+    public readonly struct Token
     {
-        public readonly uint position = position;
-        public readonly uint length = length;
-        public readonly Type type = type;
+        public readonly uint position;
+        public readonly uint length;
+        public readonly Type type;
+
+        public Token(uint position, uint length, Token.Type type)
+        {
+            this.position = position;
+            this.length = length;
+            this.type = type;
+        }
 
         public override string ToString()
         {

@@ -30,9 +30,16 @@ namespace Unmanaged.JSON
             }
         }
 
+#if NET
         public JSONArray()
         {
             value = UnsafeJSONArray.Allocate();
+        }
+#endif
+
+        private JSONArray(UnsafeJSONArray* value)
+        {
+            this.value = value;
         }
 
         public JSONArray(void* value)
@@ -230,7 +237,13 @@ namespace Unmanaged.JSON
                         UnmanagedArray<char> listBuffer = new(token.length * 4);
                         Span<char> textSpan = listBuffer.AsSpan();
                         int textLength = jsonReader.GetText(token, textSpan);
-                        jsonArray.Add(textSpan[..textLength].TrimStart('"').TrimEnd('"'));
+                        Span<char> text = textSpan[..textLength];
+                        if (text.Length > 0 && text[0] == '"')
+                        {
+                            text = text[1..^1];
+                        }
+
+                        jsonArray.Add(text);
                         listBuffer.Dispose();
                     }
                     else if (token.type == Token.Type.StartObject)
@@ -249,6 +262,11 @@ namespace Unmanaged.JSON
                     }
                 }
             }
+        }
+
+        public static JSONArray Create()
+        {
+            return new(UnsafeJSONArray.Allocate());
         }
     }
 }

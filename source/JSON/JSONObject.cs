@@ -53,6 +53,7 @@ namespace Unmanaged.JSON
 
         public readonly nint Address => (nint)value;
 
+#if NET
         /// <summary>
         /// Creates a new empty JSON object.
         /// </summary>
@@ -60,10 +61,16 @@ namespace Unmanaged.JSON
         {
             value = UnsafeJSONObject.Allocate();
         }
+#endif
 
         internal JSONObject(void* value)
         {
             this.value = (UnsafeJSONObject*)value;
+        }
+
+        private JSONObject(UnsafeJSONObject* value)
+        {
+            this.value = value;
         }
 
         public void Dispose()
@@ -350,7 +357,12 @@ namespace Unmanaged.JSON
                         int length = jsonReader.GetText(token, buffer);
                         if (jsonReader.ReadToken(out Token nextToken))
                         {
-                            Span<char> nameSpan = buffer[..length].TrimStart('"').TrimEnd('"');
+                            Span<char> nameSpan = buffer[..length];
+                            if (nameSpan.Length > 0 && nameSpan[0] == '"')
+                            {
+                                nameSpan = nameSpan[1..^1];
+                            }
+
                             if (nextToken.type == Token.Type.True)
                             {
                                 jsonObject.Add(nameSpan, true);
@@ -372,7 +384,13 @@ namespace Unmanaged.JSON
                                 UnmanagedArray<char> listBuffer = new(nextToken.length * 4);
                                 Span<char> textSpan = listBuffer.AsSpan();
                                 int textLength = jsonReader.GetText(nextToken, textSpan);
-                                jsonObject.Add(nameSpan, textSpan[..textLength].TrimStart('"').TrimEnd('"'));
+                                Span<char> text = textSpan[..textLength];
+                                if (text.Length > 0 && text[0] == '"')
+                                {
+                                    text = text[1..^1];
+                                }
+
+                                jsonObject.Add(nameSpan, text);
                                 listBuffer.Dispose();
                             }
                             else if (nextToken.type == Token.Type.StartObject)
@@ -409,6 +427,11 @@ namespace Unmanaged.JSON
                     }
                 }
             }
+        }
+
+        public static JSONObject Create()
+        {
+            return new(UnsafeJSONObject.Allocate());
         }
     }
 }

@@ -2,9 +2,9 @@
 
 namespace Unmanaged.XML
 {
-    public ref struct XMLReader(BinaryReader reader)
+    public ref struct XMLReader
     {
-        private BinaryReader reader = reader;
+        private BinaryReader reader;
         private bool inside;
 
         public uint Position
@@ -14,6 +14,12 @@ namespace Unmanaged.XML
         }
 
         public readonly uint Length => reader.Length;
+
+        public XMLReader(BinaryReader reader)
+        {
+            this.reader = reader;
+            inside = false;
+        }
 
         public readonly ReadOnlySpan<byte> AsSpan()
         {
