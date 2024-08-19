@@ -6,7 +6,7 @@ namespace Unmanaged.JSON
     public struct JSONProperty : IDisposable
     {
         private readonly UnmanagedArray<char> name;
-        private readonly Allocation value;
+        private Allocation value;
         private uint length;
         private Type type;
 
@@ -40,7 +40,7 @@ namespace Unmanaged.JSON
                     uint newLength = (uint)value.Length * sizeof(char);
                     if (length < newLength)
                     {
-                        this.value.Resize(newLength);
+                        Allocation.Resize(ref this.value, newLength);
                     }
 
                     length = newLength;
@@ -80,7 +80,7 @@ namespace Unmanaged.JSON
                 if (IsObject)
                 {
                     this.value.Read<JSONObject>().Dispose();
-                    this.value.Write(value);
+                    this.value.Write(0, value);
                 }
                 else
                 {
@@ -100,7 +100,7 @@ namespace Unmanaged.JSON
                 if (IsArray)
                 {
                     this.value.Read<JSONArray>().Dispose();
-                    this.value.Write(value);
+                    this.value.Write(0, value);
                 }
                 else
                 {
@@ -123,7 +123,7 @@ namespace Unmanaged.JSON
             this.name = new(name);
             length = sizeof(double);
             value = new(length);
-            value.Write(number);
+            value.Write(0, number);
             type = Type.Number;
         }
 
@@ -132,7 +132,7 @@ namespace Unmanaged.JSON
             this.name = new(name);
             length = sizeof(bool);
             value = new(length);
-            value.Write(boolean);
+            value.Write(0, boolean);
             type = Type.Boolean;
         }
 
@@ -141,7 +141,7 @@ namespace Unmanaged.JSON
             this.name = new(name);
             length = (uint)sizeof(nint);
             value = new(length);
-            value.Write(obj.Address);
+            value.Write(0, obj.Address);
             type = Type.Object;
         }
 
@@ -150,7 +150,7 @@ namespace Unmanaged.JSON
             this.name = new(name);
             length = (uint)sizeof(nint);
             value = new(length);
-            value.Write(array.Address);
+            value.Write(0, array.Address);
             type = Type.Array;
         }
 
