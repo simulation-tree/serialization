@@ -23,7 +23,7 @@ namespace Unmanaged.XML
 
         public readonly ReadOnlySpan<byte> AsSpan()
         {
-            return reader.AsSpan();
+            return reader.GetBytes();
         }
 
         public readonly bool PeekToken(uint position, out Token token)

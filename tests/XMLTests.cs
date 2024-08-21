@@ -83,7 +83,7 @@ namespace Serialization.Tests
         public void DeserializeFromBinary()
         {
             using BinaryReader reader = BinaryReader.CreateFromUTF8(XMLDummy);
-            ReadOnlySpan<byte> byteStream = reader.AsSpan();
+            ReadOnlySpan<byte> byteStream = reader.GetBytes();
             using XMLNode projectXml = reader.ReadObject<XMLNode>();
             string str = projectXml.ToString();
             Console.WriteLine(str);
