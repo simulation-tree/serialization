@@ -2,7 +2,7 @@
 Unmanaged library for working with JSON and XML using readers and writers with bytes directly.
 As well as intermediary types for representing objects within the supported formats.
 
-### Reader and writer
+### JSON Reader and writer
 The reader and writers are used to iteratively progress over data. How the data
 is stored should be known ahead of time (and can be tested).
 ```cs
@@ -18,7 +18,7 @@ ReadOnlySpan<char> propertyValue = reader.ReadText(out ReadOnlySpan<char> proper
 reader.ReadEndObject();
 ```
 
-### JSONObject
+### Generic JSON Object
 This is an alternative type thats able to represent a JSON object without the need
 for interacting with the reader or writer.
 ```cs
