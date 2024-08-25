@@ -44,7 +44,7 @@ namespace Unmanaged.JSON
                     }
 
                     length = newLength;
-                    this.value.Write(value);
+                    this.value.Write(0, value);
                 }
                 else
                 {
@@ -114,7 +114,7 @@ namespace Unmanaged.JSON
             this.name = new(name);
             length = (uint)text.Length * sizeof(char);
             value = new(length);
-            value.Write(text);
+            value.Write(0, text);
             type = Type.Text;
         }
 
