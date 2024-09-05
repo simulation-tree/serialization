@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Unmanaged.JSON
+﻿namespace Unmanaged.JSON
 {
     public readonly struct Token
     {
@@ -20,11 +18,11 @@ namespace Unmanaged.JSON
             return $"JSONToken (type: {type}, position: {position}, length: {length})";
         }
 
-        public readonly string ToString(JSONReader reader)
+        public unsafe readonly string ToString(JSONReader reader)
         {
-            Span<char> buffer = stackalloc char[(int)length];
-            int read = reader.GetText(this, buffer);
-            return new string(buffer[..read]);
+            USpan<char> buffer = stackalloc char[(int)length];
+            uint read = reader.GetText(this, buffer);
+            return new string(buffer.pointer, 0, (int)read);
         }
 
         public enum Type : byte

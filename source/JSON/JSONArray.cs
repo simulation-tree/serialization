@@ -53,7 +53,7 @@ namespace Unmanaged.JSON
             UnsafeJSONArray.Free(ref value);
         }
 
-        public readonly void ToString(UnmanagedList<char> result, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(UnmanagedList<char> result, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             ThrowIfDisposed();
             UnmanagedList<JSONProperty> elements = Elements;
@@ -69,7 +69,7 @@ namespace Unmanaged.JSON
                 uint position = 0;
                 while (true)
                 {
-                    ref JSONProperty element = ref elements.GetRef(position);
+                    ref JSONProperty element = ref elements[position];
                     byte childDepth = depth;
                     childDepth++;
                     element.ToString(result, false, indent, cr, lf, childDepth);
@@ -110,7 +110,7 @@ namespace Unmanaged.JSON
                 }
             }
 
-            void Indent(ReadOnlySpan<char> indent)
+            void Indent(USpan<char> indent)
             {
                 result.AddRange(indent);
             }
@@ -134,77 +134,76 @@ namespace Unmanaged.JSON
             }
         }
 
-        public readonly void Add(ReadOnlySpan<char> text)
+        public readonly void Add(USpan<char> text)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> elements = Elements;
-            Span<char> nameBuffer = stackalloc char[16];
+            USpan<char> nameBuffer = stackalloc char[16];
             uint index = elements.Count;
-            index.TryFormat(nameBuffer, out int charsWritten);
-            elements.Add(new JSONProperty(nameBuffer[..charsWritten], text));
+            uint length = index.ToString(nameBuffer);
+            elements.Add(new JSONProperty(nameBuffer.Slice(0, length), text));
+        }
+
+        public readonly void Add(string text)
+        {
+            Add(text.AsSpan());
         }
 
         public readonly void Add(double number)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> elements = Elements;
-            Span<char> nameBuffer = stackalloc char[16];
+            USpan<char> nameBuffer = stackalloc char[16];
             uint index = elements.Count;
-            index.TryFormat(nameBuffer, out int charsWritten);
-            elements.Add(new JSONProperty(nameBuffer[..charsWritten], number));
+            uint length = index.ToString(nameBuffer);
+            elements.Add(new JSONProperty(nameBuffer.Slice(0, length), number));
         }
 
         public readonly void Add(bool boolean)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> elements = Elements;
-            Span<char> nameBuffer = stackalloc char[16];
+            USpan<char> nameBuffer = stackalloc char[16];
             uint index = elements.Count;
-            index.TryFormat(nameBuffer, out int charsWritten);
-            elements.Add(new JSONProperty(nameBuffer[..charsWritten], boolean));
+            uint length = index.ToString(nameBuffer);
+            elements.Add(new JSONProperty(nameBuffer.Slice(0, length), boolean));
         }
 
         public readonly void Add(JSONObject jsonObject)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> elements = Elements;
-            Span<char> nameBuffer = stackalloc char[16];
+            USpan<char> nameBuffer = stackalloc char[16];
             uint index = elements.Count;
-            index.TryFormat(nameBuffer, out int charsWritten);
-            elements.Add(new JSONProperty(nameBuffer[..charsWritten], jsonObject));
+            uint length = index.ToString(nameBuffer);
+            elements.Add(new JSONProperty(nameBuffer.Slice(0, length), jsonObject));
         }
 
         public readonly void Add(JSONArray jsonArray)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> elements = Elements;
-            Span<char> nameBuffer = stackalloc char[16];
+            USpan<char> nameBuffer = stackalloc char[16];
             uint index = elements.Count;
-            index.TryFormat(nameBuffer, out int charsWritten);
-            elements.Add(new JSONProperty(nameBuffer[..charsWritten], jsonArray));
+            uint length = index.ToString(nameBuffer);
+            elements.Add(new JSONProperty(nameBuffer.Slice(0, length), jsonArray));
         }
 
         public readonly void AddNull()
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> elements = Elements;
-            Span<char> nameBuffer = stackalloc char[16];
+            USpan<char> nameBuffer = stackalloc char[16];
             uint index = elements.Count;
-            index.TryFormat(nameBuffer, out int charsWritten);
-            elements.Add(new JSONProperty(nameBuffer[..charsWritten]));
+            uint length = index.ToString(nameBuffer);
+            elements.Add(new JSONProperty(nameBuffer.Slice(0, length)));
         }
 
-        void ISerializable.Write(BinaryWriter writer)
+        readonly void ISerializable.Write(BinaryWriter writer)
         {
             UnmanagedList<char> list = UnmanagedList<char>.Create();
             ToString(list);
-            writer.WriteUTF8Span(list.AsSpan());
+            writer.WriteUTF8Text(list.AsSpan());
             list.Dispose();
         }
 
@@ -235,12 +234,12 @@ namespace Unmanaged.JSON
                     else if (token.type == Token.Type.Text)
                     {
                         UnmanagedArray<char> listBuffer = new(token.length * 4);
-                        Span<char> textSpan = listBuffer.AsSpan();
-                        int textLength = jsonReader.GetText(token, textSpan);
-                        Span<char> text = textSpan[..textLength];
-                        if (text.Length > 0 && text[0] == '"')
+                        USpan<char> textSpan = listBuffer.AsSpan();
+                        uint textLength = jsonReader.GetText(token, textSpan);
+                        USpan<char> text = textSpan.Slice(0, textLength);
+                        if (text.length > 0 && text[0] == '"')
                         {
-                            text = text[1..^1];
+                            text = text.Slice(1, text.length - 2);
                         }
 
                         jsonArray.Add(text);

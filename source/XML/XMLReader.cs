@@ -21,7 +21,7 @@ namespace Unmanaged.XML
             inside = false;
         }
 
-        public readonly ReadOnlySpan<byte> AsSpan()
+        public readonly USpan<byte> AsSpan()
         {
             return reader.GetBytes();
         }
@@ -140,17 +140,14 @@ namespace Unmanaged.XML
             return reader.ReadObject<XMLNode>();
         }
 
-        public unsafe readonly int GetText(Token token, Span<char> buffer)
+        public unsafe readonly uint GetText(Token token, USpan<char> buffer)
         {
-            int length = reader.PeekUTF8Span(token.position, token.length, buffer);
+            uint length = reader.PeekUTF8Span(token.position, token.length, buffer);
             if (buffer[0] == '"')
             {
-                fixed (char* ptr = buffer)
+                for (uint i = 0; i < length; i++)
                 {
-                    for (int i = 0; i < length; i++)
-                    {
-                        ptr[i] = ptr[i + 1];
-                    }
+                    buffer.pointer[i] = buffer.pointer[i + 1];
                 }
 
                 return length - 2;

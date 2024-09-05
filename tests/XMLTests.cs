@@ -74,7 +74,7 @@ namespace Serialization.Tests
             using XMLNode projectXml = reader.ReadObject<XMLNode>();
             projectXml.TryGetFirst("PropertyGroup", out XMLNode propertyGroup);
             propertyGroup.TryGetFirst("TargetFramework", out XMLNode tfm);
-            tfm.Content = "net10.0";
+            tfm.Content = "net10.0".AsSpan();
             string str = projectXml.ToString();
             Console.WriteLine(str);
         }
@@ -83,7 +83,7 @@ namespace Serialization.Tests
         public void DeserializeFromBinary()
         {
             using BinaryReader reader = BinaryReader.CreateFromUTF8(XMLDummy);
-            ReadOnlySpan<byte> byteStream = reader.GetBytes();
+            USpan<byte> byteStream = reader.GetBytes();
             using XMLNode projectXml = reader.ReadObject<XMLNode>();
             string str = projectXml.ToString();
             Console.WriteLine(str);

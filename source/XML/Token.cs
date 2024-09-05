@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Unmanaged.XML
+﻿namespace Unmanaged.XML
 {
     public readonly struct Token
     {
@@ -10,7 +8,7 @@ namespace Unmanaged.XML
 
         public readonly uint End => position + length;
 
-        public Token(uint position, uint length, Token.Type type)
+        public Token(uint position, uint length, Type type)
         {
             this.position = position;
             this.length = length;
@@ -22,7 +20,7 @@ namespace Unmanaged.XML
             return $"Token(type: {type} position:{position} length:{length})";
         }
 
-        public readonly string ToString(XMLReader reader)
+        public unsafe readonly string ToString(XMLReader reader)
         {
             if (type == Type.Open)
             {
@@ -38,9 +36,9 @@ namespace Unmanaged.XML
             }
             else if (type == Type.Text)
             {
-                Span<char> buffer = stackalloc char[(int)length];
-                int l = reader.GetText(this, buffer);
-                return new string(buffer[..l]);
+                USpan<char> buffer = stackalloc char[(int)length];
+                uint textLength = reader.GetText(this, buffer);
+                return new string(buffer.pointer, 0, (int)textLength);
             }
             else
             {

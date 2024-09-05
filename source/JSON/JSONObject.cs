@@ -14,11 +14,11 @@ namespace Unmanaged.JSON
 
         private readonly UnmanagedList<JSONProperty> PropertiesList => UnsafeJSONObject.GetProperties(value);
 
-        public readonly ReadOnlySpan<JSONProperty> Properties => PropertiesList.AsSpan();
+        public readonly USpan<JSONProperty> Properties => PropertiesList.AsSpan();
         public readonly uint Count => PropertiesList.Count;
         public readonly bool IsDisposed => UnsafeJSONObject.IsDisposed(value);
 
-        public readonly JSONProperty this[uint index]
+        public readonly ref JSONProperty this[uint index]
         {
             get
             {
@@ -28,28 +28,29 @@ namespace Unmanaged.JSON
                 }
 
                 UnmanagedList<JSONProperty> properties = PropertiesList;
-                ref JSONProperty property = ref properties.GetRef(index);
-                return property;
+                return ref properties[index];
             }
         }
 
-        public readonly JSONProperty this[ReadOnlySpan<char> name]
+        public readonly ref JSONProperty this[USpan<char> name]
         {
             get
             {
                 uint count = Count;
-                for (int i = 0; i < count; i++)
+                for (uint i = 0; i < count; i++)
                 {
-                    JSONProperty property = Properties[i];
-                    if (property.Name.Equals(name, StringComparison.Ordinal))
+                    ref JSONProperty property = ref Properties[i];
+                    if (property.Name.SequenceEqual(name))
                     {
-                        return property;
+                        return ref property;
                     }
                 }
 
                 throw new NullReferenceException($"Property \"{name.ToString()}\" not found.");
             }
         }
+
+        public readonly ref JSONProperty this[string name] => ref this[name.AsSpan()];
 
         public readonly nint Address => (nint)value;
 
@@ -105,7 +106,7 @@ namespace Unmanaged.JSON
             return value;
         }
 
-        public readonly void ToString(UnmanagedList<char> result, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(UnmanagedList<char> result, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             ThrowIfDisposed();
             UnmanagedList<JSONProperty> properties = PropertiesList;
@@ -121,7 +122,7 @@ namespace Unmanaged.JSON
                 uint position = 0;
                 while (true)
                 {
-                    ref JSONProperty property = ref properties.GetRef(position);
+                    ref JSONProperty property = ref properties[position];
                     byte childDepth = depth;
                     childDepth++;
                     property.ToString(result, true, indent, cr, lf, childDepth);
@@ -162,7 +163,7 @@ namespace Unmanaged.JSON
                 }
             }
 
-            void Indent(ReadOnlySpan<char> indent) 
+            void Indent(USpan<char> indent)
             {
                 result.AddRange(indent);
             }
@@ -186,69 +187,93 @@ namespace Unmanaged.JSON
             }
         }
 
-        public readonly void Add(ReadOnlySpan<char> name, ReadOnlySpan<char> text)
+        public readonly void Add(USpan<char> name, USpan<char> text)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name, text);
             properties.Add(property);
         }
 
-        public readonly void Add(ReadOnlySpan<char> name, double number)
+        public readonly void Add(string name, string text)
+        {
+            Add(name.AsSpan(), text.AsSpan());
+        }
+
+        public readonly void Add(USpan<char> name, double number)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name, number);
             properties.Add(property);
         }
 
-        public readonly void Add(ReadOnlySpan<char> name, bool boolean)
+        public readonly void Add(string name, double number)
+        {
+            Add(name.AsSpan(), number);
+        }
+
+        public readonly void Add(USpan<char> name, bool boolean)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name, boolean);
             properties.Add(property);
         }
 
-        public readonly void Add(ReadOnlySpan<char> name, JSONObject obj)
+        public readonly void Add(string name, bool boolean)
+        {
+            Add(name.AsSpan(), boolean);
+        }
+
+        public readonly void Add(USpan<char> name, JSONObject obj)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name, obj);
             properties.Add(property);
         }
 
-        public readonly void Add(ReadOnlySpan<char> name, JSONArray array)
+        public readonly void Add(string name, JSONObject obj)
+        {
+            Add(name.AsSpan(), obj);
+        }
+
+        public readonly void Add(USpan<char> name, JSONArray array)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name, array);
             properties.Add(property);
         }
 
-        public readonly void AddNull(ReadOnlySpan<char> name)
+        public readonly void Add(string name, JSONArray array)
+        {
+            Add(name.AsSpan(), array);
+        }
+
+        public readonly void AddNull(USpan<char> name)
         {
             ThrowIfDisposed();
-
             UnmanagedList<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name);
             properties.Add(property);
         }
 
-        public readonly bool Contains(ReadOnlySpan<char> name)
+        public readonly void AddNull(string name)
+        {
+            AddNull(name.AsSpan());
+        }
+
+        public readonly bool Contains(USpan<char> name)
         {
             ThrowIfDisposed();
             UnmanagedList<JSONProperty> properties = PropertiesList;
             uint count = Count;
             for (uint i = 0; i < count; i++)
             {
-                ref JSONProperty property = ref properties.GetRef(i);
-                if (property.Name.Equals(name, StringComparison.Ordinal))
+                ref JSONProperty property = ref properties[i];
+                if (property.Name.SequenceEqual(name))
                 {
                     return true;
                 }
@@ -257,85 +282,174 @@ namespace Unmanaged.JSON
             return false;
         }
 
-        public readonly void Set(ReadOnlySpan<char> name, ReadOnlySpan<char> text)
+        public readonly bool Contains(string name)
+        {
+            return Contains(name.AsSpan());
+        }
+
+        public readonly void Set(USpan<char> name, USpan<char> text)
         {
             ThrowIfDisposed();
             JSONProperty property = this[name];
             property.Text = text;
         }
 
-        public readonly ReadOnlySpan<char> GetText(ReadOnlySpan<char> name)
+        public readonly void Set(string name, string text)
+        {
+            Set(name.AsSpan(), text.AsSpan());
+        }
+
+        public readonly USpan<char> GetText(USpan<char> name)
         {
             ThrowIfDisposed();
             return this[name].Text;
         }
 
-        public readonly ref double GetNumber(ReadOnlySpan<char> name)
+        public readonly USpan<char> GetText(string name)
+        {
+            return GetText(name.AsSpan());
+        }
+
+        public readonly ref double GetNumber(USpan<char> name)
         {
             ThrowIfDisposed();
             return ref this[name].Number;
         }
 
-        public readonly ref bool GetBoolean(ReadOnlySpan<char> name)
+        public readonly ref double GetNumber(string name)
+        {
+            return ref GetNumber(name.AsSpan());
+        }
+
+        public readonly ref bool GetBoolean(USpan<char> name)
         {
             ThrowIfDisposed();
             return ref this[name].Boolean;
         }
 
-        public readonly JSONObject GetObject(ReadOnlySpan<char> name)
+        public readonly ref bool GetBoolean(string name)
+        {
+            return ref GetBoolean(name.AsSpan());
+        }
+
+        public readonly JSONObject GetObject(USpan<char> name)
         {
             ThrowIfDisposed();
             return this[name].Object;
         }
 
-        public readonly JSONArray GetArray(ReadOnlySpan<char> name)
+        public readonly JSONObject GetObject(string name)
+        {
+            return GetObject(name.AsSpan());
+        }
+
+        public readonly JSONArray GetArray(USpan<char> name)
         {
             ThrowIfDisposed();
             return this[name].Array;
         }
 
-        public readonly bool TryGetText(ReadOnlySpan<char> name, out ReadOnlySpan<char> text)
+        public readonly JSONArray GetArray(string name)
+        {
+            return GetArray(name.AsSpan());
+        }
+
+        public readonly bool TryGetText(USpan<char> name, out USpan<char> text)
         {
             ThrowIfDisposed();
+            if (!Contains(name))
+            {
+                text = default;
+                return false;
+            }
+
             return this[name].TryGetText(out text);
         }
 
-        public readonly bool TryGetNumber(ReadOnlySpan<char> name, out double number)
+        public readonly bool TryGetText(string name, out USpan<char> text)
+        {
+            return TryGetText(name.AsSpan(), out text);
+        }
+
+        public readonly bool TryGetNumber(USpan<char> name, out double number)
         {
             ThrowIfDisposed();
+            if (!Contains(name))
+            {
+                number = default;
+                return false;
+            }
+
             return this[name].TryGetNumber(out number);
         }
 
-        public readonly bool TryGetBoolean(ReadOnlySpan<char> name, out bool boolean)
+        public readonly bool TryGetNumber(string name, out double number)
+        {
+            return TryGetNumber(name.AsSpan(), out number);
+        }
+
+        public readonly bool TryGetBoolean(USpan<char> name, out bool boolean)
         {
             ThrowIfDisposed();
+            if (!Contains(name))
+            {
+                boolean = default;
+                return false;
+            }
+
             return this[name].TryGetBoolean(out boolean);
         }
 
-        public readonly bool TryGetObject(ReadOnlySpan<char> name, out JSONObject obj)
+        public readonly bool TryGetBoolean(string name, out bool boolean)
+        {
+            return TryGetBoolean(name.AsSpan(), out boolean);
+        }
+
+        public readonly bool TryGetObject(USpan<char> name, out JSONObject obj)
         {
             ThrowIfDisposed();
+            if (!Contains(name))
+            {
+                obj = default;
+                return false;
+            }
+
             return this[name].TryGetObject(out obj);
         }
 
-        public readonly bool TryGetArray(ReadOnlySpan<char> name, out JSONArray array)
+        public readonly bool TryGetObject(string name, out JSONObject obj)
+        {
+            return TryGetObject(name.AsSpan(), out obj);
+        }
+
+        public readonly bool TryGetArray(USpan<char> name, out JSONArray array)
         {
             ThrowIfDisposed();
+            if (!Contains(name))
+            {
+                array = default;
+                return false;
+            }
+
             return this[name].TryGetArray(out array);
         }
 
-        void ISerializable.Write(BinaryWriter writer)
+        public readonly bool TryGetArray(string name, out JSONArray array)
+        {
+            return TryGetArray(name.AsSpan(), out array);
+        }
+
+        readonly void ISerializable.Write(BinaryWriter writer)
         {
             UnmanagedList<char> list = UnmanagedList<char>.Create();
             ToString(list);
-            writer.WriteUTF8Span(list.AsSpan());
+            writer.WriteUTF8Text(list.AsSpan());
             list.Dispose();
         }
 
         void ISerializable.Read(BinaryReader reader)
         {
             value = UnsafeJSONObject.Allocate();
-
             JSONReader jsonReader = new(reader);
             if (jsonReader.PeekToken(out Token nextToken))
             {
@@ -349,18 +463,18 @@ namespace Unmanaged.JSON
 
             static void ParseObject(JSONReader jsonReader, BinaryReader reader, JSONObject jsonObject)
             {
-                Span<char> buffer = stackalloc char[256];
+                USpan<char> buffer = stackalloc char[256];
                 while (jsonReader.ReadToken(out Token token))
                 {
                     if (token.type == Token.Type.Text)
                     {
-                        int length = jsonReader.GetText(token, buffer);
+                        uint length = jsonReader.GetText(token, buffer);
                         if (jsonReader.ReadToken(out Token nextToken))
                         {
-                            Span<char> nameSpan = buffer[..length];
-                            if (nameSpan.Length > 0 && nameSpan[0] == '"')
+                            USpan<char> nameSpan = buffer.Slice(0, length);
+                            if (nameSpan.length > 0 && nameSpan[0] == '"')
                             {
-                                nameSpan = nameSpan[1..^1];
+                                nameSpan = nameSpan.Slice(1, nameSpan.length - 2);
                             }
 
                             if (nextToken.type == Token.Type.True)
@@ -382,12 +496,12 @@ namespace Unmanaged.JSON
                             else if (nextToken.type == Token.Type.Text)
                             {
                                 UnmanagedArray<char> listBuffer = new(nextToken.length * 4);
-                                Span<char> textSpan = listBuffer.AsSpan();
-                                int textLength = jsonReader.GetText(nextToken, textSpan);
-                                Span<char> text = textSpan[..textLength];
-                                if (text.Length > 0 && text[0] == '"')
+                                USpan<char> textSpan = listBuffer.AsSpan();
+                                uint textLength = jsonReader.GetText(nextToken, textSpan);
+                                USpan<char> text = textSpan.Slice(0, textLength);
+                                if (text.length > 0 && text[0] == '"')
                                 {
-                                    text = text[1..^1];
+                                    text = text.Slice(1, text.length - 2);
                                 }
 
                                 jsonObject.Add(nameSpan, text);

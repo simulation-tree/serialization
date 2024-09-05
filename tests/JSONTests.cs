@@ -116,8 +116,8 @@ namespace Serialization.Tests
             jsonObject["age"].Number++;
 
             using UnmanagedList<char> buffer = UnmanagedList<char>.Create();
-            jsonObject.ToString(buffer, "    ", true, true);
-            ReadOnlySpan<char> jsonText = buffer.AsSpan();
+            jsonObject.ToString(buffer, "    ".AsSpan(), true, true);
+            USpan<char> jsonText = buffer.AsSpan();
             Console.WriteLine(jsonText.ToString());
         }
 
@@ -134,18 +134,18 @@ namespace Serialization.Tests
             using BinaryReader reader = BinaryReader.CreateFromUTF8(settings.ToString());
             JSONReader jsonReader = new(reader);
             jsonReader.ReadToken(); //{
-            Span<char> buffer = stackalloc char[32];
+            USpan<char> buffer = stackalloc char[32];
             while (jsonReader.ReadToken(out Token token))
             {
                 if (token.type == Token.Type.Text)
                 {
-                    int length = jsonReader.GetText(token, buffer);
-                    string name = buffer[..length].ToString();
+                    uint length = jsonReader.GetText(token, buffer);
+                    string name = buffer.Slice(0, length).ToString();
                     Token next = jsonReader.ReadToken();
                     if (next.type == Token.Type.Text)
                     {
                         length = jsonReader.GetText(next, buffer);
-                        string value = buffer[..length].ToString();
+                        string value = buffer.Slice(0, length).ToString();
                         settingsList.Add((name, value));
                     }
                     else if (next.type == Token.Type.Number)
@@ -189,7 +189,7 @@ namespace Serialization.Tests
         {
             JsonObject json = new();
             JsonArray inventory = new();
-            for (int i = 0; i < 32; i++)
+            for (uint i = 0; i < 32; i++)
             {
                 JsonObject item = new();
                 item.Add("name", $"Item {i}");
@@ -271,7 +271,7 @@ namespace Serialization.Tests
         {
             using JSONObject inventory = new();
             JSONArray array = new();
-            for (int i = 0; i < 32; i++)
+            for (uint i = 0; i < 32; i++)
             {
                 array.Add(i);
             }
@@ -295,9 +295,9 @@ namespace Serialization.Tests
             List<DummyJSONObject> originals = new();
             for (int i = 0; i < 32; i++)
             {
-                var g = Guid.NewGuid();
+                Guid g = Guid.NewGuid();
                 DummyJSONObject dummy = new($"Item {i}", g.ToString(), i * (g.GetHashCode() % 7), i % 2 == 0);
-                
+
                 JsonObject item = new();
                 item.Add("name", dummy.Name.ToString());
                 item.Add("value", dummy.Value.ToString());
@@ -334,13 +334,21 @@ namespace Serialization.Tests
             private UnmanagedArray<char> name;
             private UnmanagedArray<char> value;
 
-            public readonly Span<char> Name => name.AsSpan();
-            public readonly Span<char> Value => value.AsSpan();
+            public readonly USpan<char> Name => name.AsSpan();
+            public readonly USpan<char> Value => value.AsSpan();
 
-            public DummyJSONObject(ReadOnlySpan<char> name, ReadOnlySpan<char> value, int quantity, bool isRare)
+            public DummyJSONObject(USpan<char> name, USpan<char> value, int quantity, bool isRare)
             {
                 this.name = new(name);
                 this.value = new(value);
+                this.quantity = quantity;
+                this.isRare = isRare;
+            }
+
+            public DummyJSONObject(string name, string value, int quantity, bool isRare)
+            {
+                this.name = new(name.AsSpan());
+                this.value = new(value.AsSpan());
                 this.quantity = quantity;
                 this.isRare = isRare;
             }
@@ -353,13 +361,13 @@ namespace Serialization.Tests
 
             void IJSONSerializable.Read(JSONReader reader)
             {
-                Span<char> buffer = stackalloc char[64];
+                USpan<char> buffer = stackalloc char[64];
                 reader.ReadToken();
-                int length = reader.ReadText(buffer);
-                name = new(buffer[..length]);
+                uint length = reader.ReadText(buffer);
+                name = new(buffer.Slice(0, length));
                 reader.ReadToken();
                 length = reader.ReadText(buffer);
-                value = new(buffer[..length]);
+                value = new(buffer.Slice(0, length));
                 reader.ReadToken();
                 quantity = (int)reader.ReadNumber();
                 reader.ReadToken();

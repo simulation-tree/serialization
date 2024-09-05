@@ -17,10 +17,10 @@ namespace Unmanaged.JSON
         public readonly bool IsArray => type == Type.Array;
         public readonly bool IsNull => type == Type.Null;
         public readonly Type PropertyType => type;
-        public readonly ReadOnlySpan<char> Name => name.AsSpan();
+        public readonly USpan<char> Name => name.AsSpan();
         public readonly bool IsDisposed => type == default || name.IsDisposed;
 
-        public ReadOnlySpan<char> Text
+        public USpan<char> Text
         {
             readonly get
             {
@@ -37,7 +37,7 @@ namespace Unmanaged.JSON
             {
                 if (IsText)
                 {
-                    uint newLength = (uint)value.Length * sizeof(char);
+                    uint newLength = (uint)value.length * sizeof(char);
                     if (length < newLength)
                     {
                         Allocation.Resize(ref this.value, newLength);
@@ -109,16 +109,16 @@ namespace Unmanaged.JSON
             }
         }
 
-        public JSONProperty(ReadOnlySpan<char> name, ReadOnlySpan<char> text)
+        public JSONProperty(USpan<char> name, USpan<char> text)
         {
             this.name = new(name);
-            length = (uint)text.Length * sizeof(char);
+            length = text.length * sizeof(char);
             value = new(length);
             value.Write(0, text);
             type = Type.Text;
         }
 
-        public JSONProperty(ReadOnlySpan<char> name, double number)
+        public JSONProperty(USpan<char> name, double number)
         {
             this.name = new(name);
             length = sizeof(double);
@@ -127,7 +127,7 @@ namespace Unmanaged.JSON
             type = Type.Number;
         }
 
-        public JSONProperty(ReadOnlySpan<char> name, bool boolean)
+        public JSONProperty(USpan<char> name, bool boolean)
         {
             this.name = new(name);
             length = sizeof(bool);
@@ -136,7 +136,7 @@ namespace Unmanaged.JSON
             type = Type.Boolean;
         }
 
-        public unsafe JSONProperty(ReadOnlySpan<char> name, JSONObject obj)
+        public unsafe JSONProperty(USpan<char> name, JSONObject obj)
         {
             this.name = new(name);
             length = (uint)sizeof(nint);
@@ -145,7 +145,7 @@ namespace Unmanaged.JSON
             type = Type.Object;
         }
 
-        public unsafe JSONProperty(ReadOnlySpan<char> name, JSONArray array)
+        public unsafe JSONProperty(USpan<char> name, JSONArray array)
         {
             this.name = new(name);
             length = (uint)sizeof(nint);
@@ -154,7 +154,7 @@ namespace Unmanaged.JSON
             type = Type.Array;
         }
 
-        public JSONProperty(ReadOnlySpan<char> name)
+        public JSONProperty(USpan<char> name)
         {
             this.name = new(name);
             length = 0;
@@ -182,7 +182,7 @@ namespace Unmanaged.JSON
             type = default;
         }
 
-        public unsafe readonly void ToString(UnmanagedList<char> result, bool prefixName, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public unsafe readonly void ToString(UnmanagedList<char> result, bool prefixName, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             if (prefixName)
             {
@@ -201,15 +201,9 @@ namespace Unmanaged.JSON
             else if (type == Type.Number)
             {
                 double number = Number;
-                Span<char> buffer = stackalloc char[64];
-                if (number.TryFormat(buffer, out int charsWritten))
-                {
-                    result.AddRange(buffer[..charsWritten]);
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Failed to format number {number} for property {Name.ToString()}.");
-                }
+                USpan<char> buffer = stackalloc char[64];
+                uint length = number.ToString(buffer);
+                result.AddRange(buffer.Slice(0, length));
             }
             else if (type == Type.Boolean)
             {
@@ -229,7 +223,7 @@ namespace Unmanaged.JSON
             }
             else if (type == Type.Null)
             {
-                result.AddRange("null".AsSpan());
+                result.AddRange(MemoryExtensions.AsSpan("null"));
             }
             else
             {
@@ -246,7 +240,7 @@ namespace Unmanaged.JSON
             return result;
         }
 
-        public readonly bool TryGetText(out ReadOnlySpan<char> text)
+        public readonly bool TryGetText(out USpan<char> text)
         {
             if (IsText)
             {

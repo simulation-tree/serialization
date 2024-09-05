@@ -27,31 +27,45 @@ namespace Unmanaged.XML
 
         public readonly void WriteStartObject()
         {
-            writer.WriteUTF8('<');
+            writer.WriteUTF8Character('<');
         }
 
         public readonly void WriteEndObject()
         {
-            writer.WriteUTF8('>');
+            writer.WriteUTF8Character('>');
         }
 
         public readonly void WriteSlash()
         {
-            writer.WriteUTF8('/');
+            writer.WriteUTF8Character('/');
         }
 
-        public readonly void WriteAttribute(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
+        public readonly void WriteAttribute(USpan<char> name, USpan<char> value)
         {
-            writer.WriteUTF8Span(name);
-            writer.WriteUTF8('=');
-            writer.WriteUTF8('"');
-            writer.WriteUTF8Span(value);
-            writer.WriteUTF8('"');
+            writer.WriteUTF8Text(name);
+            writer.WriteUTF8Character('=');
+            writer.WriteUTF8Character('"');
+            writer.WriteUTF8Text(value);
+            writer.WriteUTF8Character('"');
         }
 
-        public readonly void WriteText(ReadOnlySpan<char> value)
+        public readonly void WriteAttribute(string name, string value)
         {
-            writer.WriteUTF8Span(value);
+            writer.WriteUTF8Text(name);
+            writer.WriteUTF8Character('=');
+            writer.WriteUTF8Character('"');
+            writer.WriteUTF8Text(value);
+            writer.WriteUTF8Character('"');
+        }
+
+        public readonly void WriteText(USpan<char> value)
+        {
+            writer.WriteUTF8Text(value);
+        }
+
+        public readonly void WriteText(string value)
+        {
+            writer.WriteUTF8Text(value);
         }
 
         public static XMLWriter Create()

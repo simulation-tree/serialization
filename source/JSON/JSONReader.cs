@@ -11,8 +11,8 @@ namespace Unmanaged.JSON
 
         public readonly bool IsDisposed => reader.IsDisposed;
 
-#if NET5_0_OR_GREATER
-        [Obsolete("Use Create() or other constructor", true)]
+#if NET
+        [Obsolete("Default constructor not available", true)]
         public JSONReader()
         {
             throw new NotImplementedException();
@@ -29,7 +29,7 @@ namespace Unmanaged.JSON
 
         public readonly bool PeekToken(out Token token)
         {
-            Span<char> buffer = stackalloc char[8];
+            USpan<char> buffer = stackalloc char[8];
             token = default;
             uint position = reader.Position;
             while (position < reader.Length)
@@ -74,17 +74,17 @@ namespace Unmanaged.JSON
                 }
                 else if (c == 't' || c == 'f')
                 {
-                    int peekLength = reader.PeekUTF8Span(position, 5, buffer);
-                    if (buffer[..peekLength].SequenceEqual("false"))
+                    uint peekLength = reader.PeekUTF8Span(position, 5, buffer);
+                    if (buffer.Slice(0, peekLength).SequenceEqual("false".AsSpan()))
                     {
-                        token = new Token(position, (uint)peekLength, Token.Type.False);
+                        token = new Token(position, peekLength, Token.Type.False);
                         return true;
                     }
 
-                    Span<char> smallerBuffer = buffer[..(peekLength - 1)];
-                    if (smallerBuffer.SequenceEqual("true"))
+                    USpan<char> smallerBuffer = buffer.Slice(0, peekLength - 1);
+                    if (smallerBuffer.SequenceEqual("true".AsSpan()))
                     {
-                        token = new Token(position, (uint)peekLength - 1, Token.Type.True);
+                        token = new Token(position, peekLength - 1, Token.Type.True);
                         return true;
                     }
 
@@ -133,7 +133,7 @@ namespace Unmanaged.JSON
             return read;
         }
 
-        public int ReadText(Span<char> buffer)
+        public uint ReadText(USpan<char> buffer)
         {
             while (ReadToken(out Token token))
             {
@@ -228,17 +228,14 @@ namespace Unmanaged.JSON
             throw new InvalidOperationException("Expected start object token.");
         }
 
-        public unsafe readonly int GetText(Token token, Span<char> buffer)
+        public unsafe readonly uint GetText(Token token, USpan<char> buffer)
         {
-            int length = reader.PeekUTF8Span(token.position, token.length, buffer);
+            uint length = reader.PeekUTF8Span(token.position, token.length, buffer);
             if (buffer[0] == '"')
             {
-                fixed (char* ptr = buffer)
+                for (uint i = 0; i < length - 1; i++)
                 {
-                    for (int i = 0; i < length; i++)
-                    {
-                        ptr[i] = ptr[i + 1];
-                    }
+                    buffer.pointer[i] = buffer.pointer[i + 1];
                 }
 
                 return length - 2;
@@ -248,16 +245,16 @@ namespace Unmanaged.JSON
 
         public readonly double GetNumber(Token token)
         {
-            Span<char> buffer = stackalloc char[(int)token.length];
-            int length = GetText(token, buffer);
-            return double.Parse(buffer[..length]);
+            USpan<char> buffer = stackalloc char[(int)token.length];
+            uint length = GetText(token, buffer);
+            return double.Parse(buffer.Slice(0, length).AsSystemSpan());
         }
 
         public readonly bool GetBoolean(Token token)
         {
-            Span<char> buffer = stackalloc char[(int)token.length];
-            int length = GetText(token, buffer);
-            return buffer[..length].SequenceEqual("true");
+            USpan<char> buffer = stackalloc char[(int)token.length];
+            uint length = GetText(token, buffer);
+            return buffer.Slice(0, length).SequenceEqual("true".AsSpan());
         }
     }
 }

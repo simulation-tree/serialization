@@ -3,17 +3,17 @@ using Unmanaged.Collections;
 
 namespace Unmanaged.XML
 {
-    public struct XMLAttribute : IDisposable
+    public readonly struct XMLAttribute : IDisposable
     {
-        private UnmanagedArray<char> name;
-        private UnmanagedArray<char> value;
+        private readonly UnmanagedArray<char> name;
+        private readonly UnmanagedArray<char> value;
 
-        public readonly ReadOnlySpan<char> Name
+        public readonly USpan<char> Name
         {
             get => name.AsSpan();
             set
             {
-                uint newLength = (uint)value.Length;
+                uint newLength = value.length;
                 if (newLength > name.Length)
                 {
                     name.Resize(newLength);
@@ -23,12 +23,12 @@ namespace Unmanaged.XML
             }
         }
 
-        public readonly ReadOnlySpan<char> Value
+        public readonly USpan<char> Value
         {
             get => value.AsSpan();
             set
             {
-                uint newLength = (uint)value.Length;
+                uint newLength = value.length;
                 if (newLength > this.value.Length)
                 {
                     this.value.Resize(newLength);
@@ -40,10 +40,16 @@ namespace Unmanaged.XML
 
         public readonly bool IsDisposed => name.IsDisposed;
 
-        public XMLAttribute(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
+        public XMLAttribute(USpan<char> name, USpan<char> value)
         {
             this.name = new(name);
             this.value = new(value);
+        }
+
+        public XMLAttribute(string name, string value)
+        {
+            this.name = new(name.AsSpan());
+            this.value = new(value.AsSpan());
         }
 
         public XMLAttribute(ref XMLReader reader)
@@ -54,9 +60,9 @@ namespace Unmanaged.XML
                 throw new Exception();
             }
 
-            Span<char> buffer = stackalloc char[256];
-            int length = reader.GetText(nameToken, buffer);
-            name = new(buffer[..length]);
+            USpan<char> buffer = stackalloc char[256];
+            uint length = reader.GetText(nameToken, buffer);
+            name = new(buffer.Slice(0, length));
 
             Token valueToken = reader.ReadToken();
             if (valueToken.type != Token.Type.Text)
@@ -65,31 +71,31 @@ namespace Unmanaged.XML
             }
 
             length = reader.GetText(valueToken, buffer);
-            value = new(buffer[..length]);
+            value = new(buffer.Slice(0, length));
         }
 
-        public void Dispose()
+        public readonly void Dispose()
         {
             name.Dispose();
             value.Dispose();
         }
 
-        public readonly void ToString(UnmanagedList<char> list)
+        public unsafe readonly override string ToString()
         {
+            using UnmanagedList<char> tempList = new(Name.length + Value.length + 3);
+            uint length = ToString(tempList);
+            return new string(tempList.AsSpan().pointer, 0, (int)length);
+        }
+
+        public readonly uint ToString(UnmanagedList<char> list)
+        {
+            uint count = list.Count;
             list.AddRange(Name);
             list.Add('=');
             list.Add('"');
             list.AddRange(Value);
             list.Add('"');
-        }
-
-        public readonly override string ToString()
-        {
-            UnmanagedList<char> list = UnmanagedList<char>.Create();
-            ToString(list);
-            string text = list.AsSpan().ToString();
-            list.Dispose();
-            return text;
+            return list.Count - count;
         }
     }
 }

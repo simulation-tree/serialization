@@ -13,12 +13,12 @@ namespace Unmanaged.XML
         /// <summary>
         /// Name of the node.
         /// </summary>
-        public readonly ReadOnlySpan<char> Name
+        public readonly USpan<char> Name
         {
             get => name.AsSpan();
             set
             {
-                uint newLength = (uint)value.Length;
+                uint newLength = (uint)value.length;
                 if (newLength > name.Length)
                 {
                     name.Resize(newLength);
@@ -31,7 +31,7 @@ namespace Unmanaged.XML
         /// <summary>
         /// Possible text content inside the node.
         /// </summary>
-        public readonly ReadOnlySpan<char> Content
+        public readonly USpan<char> Content
         {
             get => content.AsSpan();
             set
@@ -50,11 +50,11 @@ namespace Unmanaged.XML
                     throw new IndexOutOfRangeException();
                 }
 
-                return ref children.GetRef(index);
+                return ref children[index];
             }
         }
 
-        public readonly ReadOnlySpan<char> this[ReadOnlySpan<char> name]
+        public readonly USpan<char> this[USpan<char> name]
         {
             get
             {
@@ -82,12 +82,12 @@ namespace Unmanaged.XML
         /// <summary>
         /// Attributes defining the node.
         /// </summary>
-        public readonly ReadOnlySpan<XMLAttribute> Attributes => attributes.AsSpan();
+        public readonly USpan<XMLAttribute> Attributes => attributes.AsSpan();
 
         /// <summary>
         /// Child XML nodes.
         /// </summary>
-        public readonly ReadOnlySpan<XMLNode> Children => children.AsSpan();
+        public readonly USpan<XMLNode> Children => children.AsSpan();
 
         public readonly uint Count => children.Count;
 
@@ -103,7 +103,7 @@ namespace Unmanaged.XML
         }
 #endif
 
-        public XMLNode(ReadOnlySpan<char> name)
+        public XMLNode(USpan<char> name)
         {
             this.name = new(name);
             attributes = UnmanagedList<XMLAttribute>.Create();
@@ -140,7 +140,7 @@ namespace Unmanaged.XML
         public readonly override string ToString()
         {
             UnmanagedList<char> list = UnmanagedList<char>.Create();
-            ToString(list, "  ", true, true);
+            ToString(list, "  ".AsSpan(), true, true);
             string str = list.AsSpan().ToString();
             list.Dispose();
             return str;
@@ -165,10 +165,10 @@ namespace Unmanaged.XML
 
             //read name
             token = xmlReader.ReadToken();
-            Span<char> nameBuffer = stackalloc char[256];
-            Span<char> valueBuffer = stackalloc char[256];
-            int length = xmlReader.GetText(token, nameBuffer);
-            name = new(nameBuffer[..length]);
+            USpan<char> nameBuffer = stackalloc char[256];
+            USpan<char> valueBuffer = stackalloc char[256];
+            uint length = xmlReader.GetText(token, nameBuffer);
+            name = new(nameBuffer.Slice(0, length));
 
             //read attributes inside first node
             while (xmlReader.ReadToken(out token))
@@ -191,8 +191,8 @@ namespace Unmanaged.XML
                 {
                     length = xmlReader.GetText(token, nameBuffer);
                     token = xmlReader.ReadToken();
-                    int valueLength = xmlReader.GetText(token, valueBuffer);
-                    XMLAttribute attribute = new(nameBuffer[..length], valueBuffer[..valueLength]);
+                    uint valueLength = xmlReader.GetText(token, valueBuffer);
+                    XMLAttribute attribute = new(nameBuffer.Slice(0, length), valueBuffer.Slice(0, valueLength));
                     attributes.Add(attribute);
                 }
             }
@@ -211,9 +211,9 @@ namespace Unmanaged.XML
                     else
                     {
                         using UnmanagedArray<char> temp = new(token.length);
-                        Span<char> tempSpan = temp.AsSpan();
-                        int written = reader.PeekUTF8Span(token.position, token.length, tempSpan);
-                        content.AddRange(tempSpan[..written]);
+                        USpan<char> tempSpan = temp.AsSpan();
+                        uint written = reader.PeekUTF8Span(token.position, token.length, tempSpan);
+                        content.AddRange(tempSpan.Slice(0, written));
                         reader.Position = token.position + token.length;
                     }
 
@@ -227,7 +227,7 @@ namespace Unmanaged.XML
                             if (xmlReader.ReadToken(out next) && next.type == Token.Type.Text)
                             {
                                 length = xmlReader.GetText(next, nameBuffer);
-                                ReadOnlySpan<char> closingName = nameBuffer[..length];
+                                USpan<char> closingName = nameBuffer.Slice(0, length);
                                 if (closingName.SequenceEqual(Name))
                                 {
                                     next = xmlReader.ReadToken(); //close
@@ -257,7 +257,7 @@ namespace Unmanaged.XML
             }
         }
 
-        public readonly void ToString(UnmanagedList<char> list, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(UnmanagedList<char> list, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             for (byte i = 0; i < depth; i++)
             {
@@ -319,7 +319,7 @@ namespace Unmanaged.XML
                 }
             }
 
-            void Indent(ReadOnlySpan<char> indent)
+            void Indent(USpan<char> indent)
             {
                 list.AddRange(indent);
             }
@@ -350,7 +350,7 @@ namespace Unmanaged.XML
             return children.TryIndexOf(node, out index);
         }
 
-        public readonly XMLNode GetFirst(ReadOnlySpan<char> name)
+        public readonly XMLNode GetFirst(USpan<char> name)
         {
             foreach (XMLNode node in children)
             {
@@ -363,7 +363,12 @@ namespace Unmanaged.XML
             throw new NullReferenceException($"No child node {name.ToString()} found");
         }
 
-        public readonly bool TryGetFirst(ReadOnlySpan<char> name, out XMLNode child)
+        public readonly XMLNode GetFirst(string name)
+        {
+            return GetFirst(name.AsSpan());
+        }
+
+        public readonly bool TryGetFirst(USpan<char> name, out XMLNode child)
         {
             foreach (XMLNode node in children)
             {
@@ -378,7 +383,12 @@ namespace Unmanaged.XML
             return false;
         }
 
-        public readonly bool TryGetAttribute(ReadOnlySpan<char> name, out ReadOnlySpan<char> value)
+        public readonly bool TryGetFirst(string name, out XMLNode child)
+        {
+            return TryGetFirst(name.AsSpan(), out child);
+        }
+
+        public readonly bool TryGetAttribute(USpan<char> name, out USpan<char> value)
         {
             for (uint i = 0; i < attributes.Count; i++)
             {
@@ -394,7 +404,12 @@ namespace Unmanaged.XML
             return false;
         }
 
-        public readonly bool TryIndexOfAttribute(ReadOnlySpan<char> name, out uint index)
+        public readonly bool TryGetAttribute(string name, out USpan<char> value)
+        {
+            return TryGetAttribute(name.AsSpan(), out value);
+        }
+
+        public readonly bool TryIndexOfAttribute(USpan<char> name, out uint index)
         {
             for (uint i = 0; i < attributes.Count; i++)
             {
@@ -410,7 +425,7 @@ namespace Unmanaged.XML
             return false;
         }
 
-        public readonly bool ContainsAttribute(ReadOnlySpan<char> name)
+        public readonly bool ContainsAttribute(USpan<char> name)
         {
             for (uint i = 0; i < attributes.Count; i++)
             {
@@ -424,7 +439,12 @@ namespace Unmanaged.XML
             return false;
         }
 
-        public readonly uint IndexOfAttribute(ReadOnlySpan<char> name)
+        public readonly bool ContainsAttribute(string name)
+        {
+            return ContainsAttribute(name.AsSpan());
+        }
+
+        public readonly uint IndexOfAttribute(USpan<char> name)
         {
             for (uint i = 0; i < attributes.Count; i++)
             {
@@ -438,11 +458,16 @@ namespace Unmanaged.XML
             throw new IndexOutOfRangeException();
         }
 
+        public readonly uint IndexOfAttribute(string name)
+        {
+            return IndexOfAttribute(name.AsSpan());
+        }
+
         /// <summary>
         /// Creates a new attribute or assigns an existing one to the given value.
         /// </summary>
         /// <returns><c>true</c> if it was created, otherwise it was set</returns>
-        public readonly bool SetAttribute(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
+        public readonly bool SetAttribute(USpan<char> name, USpan<char> value)
         {
             for (uint i = 0; i < attributes.Count; i++)
             {
@@ -459,7 +484,12 @@ namespace Unmanaged.XML
             return true;
         }
 
-        public readonly bool RemoveAttribute(ReadOnlySpan<char> name)
+        public readonly bool SetAttribute(string name, USpan<char> value)
+        {
+            return SetAttribute(name.AsSpan(), value);
+        }
+
+        public readonly bool RemoveAttribute(USpan<char> name)
         {
             for (uint i = 0; i < attributes.Count; i++)
             {
@@ -472,6 +502,11 @@ namespace Unmanaged.XML
             }
 
             return false;
+        }
+
+        public readonly bool RemoveAttribute(string name)
+        {
+            return RemoveAttribute(name.AsSpan());
         }
 
         public readonly override bool Equals(object? obj)
@@ -489,9 +524,14 @@ namespace Unmanaged.XML
             return HashCode.Combine(name, attributes, content, children);
         }
 
-        public static XMLNode Create(ReadOnlySpan<char> name)
+        public static XMLNode Create(USpan<char> name)
         {
             return new XMLNode(name);
+        }
+
+        public static XMLNode Create(string name)
+        {
+            return Create(name.AsSpan());
         }
 
         public static XMLNode Create()
