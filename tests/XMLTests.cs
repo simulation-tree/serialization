@@ -74,7 +74,7 @@ namespace Serialization.Tests
             using XMLNode projectXml = reader.ReadObject<XMLNode>();
             projectXml.TryGetFirst("PropertyGroup", out XMLNode propertyGroup);
             propertyGroup.TryGetFirst("TargetFramework", out XMLNode tfm);
-            tfm.Content = "net10.0".AsSpan();
+            tfm.Content = "net10.0".AsUSpan();
             string str = projectXml.ToString();
             Console.WriteLine(str);
         }

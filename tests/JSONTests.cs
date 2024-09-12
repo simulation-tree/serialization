@@ -116,7 +116,7 @@ namespace Serialization.Tests
             jsonObject["age"].Number++;
 
             using UnmanagedList<char> buffer = UnmanagedList<char>.Create();
-            jsonObject.ToString(buffer, "    ".AsSpan(), true, true);
+            jsonObject.ToString(buffer, "    ".AsUSpan(), true, true);
             USpan<char> jsonText = buffer.AsSpan();
             Console.WriteLine(jsonText.ToString());
         }
@@ -347,8 +347,8 @@ namespace Serialization.Tests
 
             public DummyJSONObject(string name, string value, int quantity, bool isRare)
             {
-                this.name = new(name.AsSpan());
-                this.value = new(value.AsSpan());
+                this.name = new(name.AsUSpan());
+                this.value = new(value.AsUSpan());
                 this.quantity = quantity;
                 this.isRare = isRare;
             }

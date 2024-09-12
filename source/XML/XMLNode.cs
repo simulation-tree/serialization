@@ -140,7 +140,7 @@ namespace Unmanaged.XML
         public readonly override string ToString()
         {
             UnmanagedList<char> list = UnmanagedList<char>.Create();
-            ToString(list, "  ".AsSpan(), true, true);
+            ToString(list, "  ".AsUSpan(), true, true);
             string str = list.AsSpan().ToString();
             list.Dispose();
             return str;
@@ -365,7 +365,7 @@ namespace Unmanaged.XML
 
         public readonly XMLNode GetFirst(string name)
         {
-            return GetFirst(name.AsSpan());
+            return GetFirst(name.AsUSpan());
         }
 
         public readonly bool TryGetFirst(USpan<char> name, out XMLNode child)
@@ -385,7 +385,7 @@ namespace Unmanaged.XML
 
         public readonly bool TryGetFirst(string name, out XMLNode child)
         {
-            return TryGetFirst(name.AsSpan(), out child);
+            return TryGetFirst(name.AsUSpan(), out child);
         }
 
         public readonly bool TryGetAttribute(USpan<char> name, out USpan<char> value)
@@ -406,7 +406,7 @@ namespace Unmanaged.XML
 
         public readonly bool TryGetAttribute(string name, out USpan<char> value)
         {
-            return TryGetAttribute(name.AsSpan(), out value);
+            return TryGetAttribute(name.AsUSpan(), out value);
         }
 
         public readonly bool TryIndexOfAttribute(USpan<char> name, out uint index)
@@ -441,7 +441,7 @@ namespace Unmanaged.XML
 
         public readonly bool ContainsAttribute(string name)
         {
-            return ContainsAttribute(name.AsSpan());
+            return ContainsAttribute(name.AsUSpan());
         }
 
         public readonly uint IndexOfAttribute(USpan<char> name)
@@ -460,7 +460,7 @@ namespace Unmanaged.XML
 
         public readonly uint IndexOfAttribute(string name)
         {
-            return IndexOfAttribute(name.AsSpan());
+            return IndexOfAttribute(name.AsUSpan());
         }
 
         /// <summary>
@@ -486,7 +486,7 @@ namespace Unmanaged.XML
 
         public readonly bool SetAttribute(string name, USpan<char> value)
         {
-            return SetAttribute(name.AsSpan(), value);
+            return SetAttribute(name.AsUSpan(), value);
         }
 
         public readonly bool RemoveAttribute(USpan<char> name)
@@ -506,7 +506,7 @@ namespace Unmanaged.XML
 
         public readonly bool RemoveAttribute(string name)
         {
-            return RemoveAttribute(name.AsSpan());
+            return RemoveAttribute(name.AsUSpan());
         }
 
         public readonly override bool Equals(object? obj)
@@ -531,7 +531,7 @@ namespace Unmanaged.XML
 
         public static XMLNode Create(string name)
         {
-            return Create(name.AsSpan());
+            return Create(name.AsUSpan());
         }
 
         public static XMLNode Create()

@@ -48,8 +48,8 @@ namespace Unmanaged.XML
 
         public XMLAttribute(string name, string value)
         {
-            this.name = new(name.AsSpan());
-            this.value = new(value.AsSpan());
+            this.name = new(name.AsUSpan());
+            this.value = new(value.AsUSpan());
         }
 
         public XMLAttribute(ref XMLReader reader)

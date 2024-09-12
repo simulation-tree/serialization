@@ -50,7 +50,7 @@ namespace Unmanaged.JSON
             }
         }
 
-        public readonly ref JSONProperty this[string name] => ref this[name.AsSpan()];
+        public readonly ref JSONProperty this[string name] => ref this[name.AsUSpan()];
 
         public readonly nint Address => (nint)value;
 
@@ -197,7 +197,7 @@ namespace Unmanaged.JSON
 
         public readonly void Add(string name, string text)
         {
-            Add(name.AsSpan(), text.AsSpan());
+            Add(name.AsUSpan(), text.AsUSpan());
         }
 
         public readonly void Add(USpan<char> name, double number)
@@ -210,7 +210,7 @@ namespace Unmanaged.JSON
 
         public readonly void Add(string name, double number)
         {
-            Add(name.AsSpan(), number);
+            Add(name.AsUSpan(), number);
         }
 
         public readonly void Add(USpan<char> name, bool boolean)
@@ -223,7 +223,7 @@ namespace Unmanaged.JSON
 
         public readonly void Add(string name, bool boolean)
         {
-            Add(name.AsSpan(), boolean);
+            Add(name.AsUSpan(), boolean);
         }
 
         public readonly void Add(USpan<char> name, JSONObject obj)
@@ -236,7 +236,7 @@ namespace Unmanaged.JSON
 
         public readonly void Add(string name, JSONObject obj)
         {
-            Add(name.AsSpan(), obj);
+            Add(name.AsUSpan(), obj);
         }
 
         public readonly void Add(USpan<char> name, JSONArray array)
@@ -249,7 +249,7 @@ namespace Unmanaged.JSON
 
         public readonly void Add(string name, JSONArray array)
         {
-            Add(name.AsSpan(), array);
+            Add(name.AsUSpan(), array);
         }
 
         public readonly void AddNull(USpan<char> name)
@@ -262,7 +262,7 @@ namespace Unmanaged.JSON
 
         public readonly void AddNull(string name)
         {
-            AddNull(name.AsSpan());
+            AddNull(name.AsUSpan());
         }
 
         public readonly bool Contains(USpan<char> name)
@@ -284,7 +284,7 @@ namespace Unmanaged.JSON
 
         public readonly bool Contains(string name)
         {
-            return Contains(name.AsSpan());
+            return Contains(name.AsUSpan());
         }
 
         public readonly void Set(USpan<char> name, USpan<char> text)
@@ -296,7 +296,7 @@ namespace Unmanaged.JSON
 
         public readonly void Set(string name, string text)
         {
-            Set(name.AsSpan(), text.AsSpan());
+            Set(name.AsUSpan(), text.AsUSpan());
         }
 
         public readonly USpan<char> GetText(USpan<char> name)
@@ -307,7 +307,7 @@ namespace Unmanaged.JSON
 
         public readonly USpan<char> GetText(string name)
         {
-            return GetText(name.AsSpan());
+            return GetText(name.AsUSpan());
         }
 
         public readonly ref double GetNumber(USpan<char> name)
@@ -318,7 +318,7 @@ namespace Unmanaged.JSON
 
         public readonly ref double GetNumber(string name)
         {
-            return ref GetNumber(name.AsSpan());
+            return ref GetNumber(name.AsUSpan());
         }
 
         public readonly ref bool GetBoolean(USpan<char> name)
@@ -329,7 +329,7 @@ namespace Unmanaged.JSON
 
         public readonly ref bool GetBoolean(string name)
         {
-            return ref GetBoolean(name.AsSpan());
+            return ref GetBoolean(name.AsUSpan());
         }
 
         public readonly JSONObject GetObject(USpan<char> name)
@@ -340,7 +340,7 @@ namespace Unmanaged.JSON
 
         public readonly JSONObject GetObject(string name)
         {
-            return GetObject(name.AsSpan());
+            return GetObject(name.AsUSpan());
         }
 
         public readonly JSONArray GetArray(USpan<char> name)
@@ -351,7 +351,7 @@ namespace Unmanaged.JSON
 
         public readonly JSONArray GetArray(string name)
         {
-            return GetArray(name.AsSpan());
+            return GetArray(name.AsUSpan());
         }
 
         public readonly bool TryGetText(USpan<char> name, out USpan<char> text)
@@ -368,7 +368,7 @@ namespace Unmanaged.JSON
 
         public readonly bool TryGetText(string name, out USpan<char> text)
         {
-            return TryGetText(name.AsSpan(), out text);
+            return TryGetText(name.AsUSpan(), out text);
         }
 
         public readonly bool TryGetNumber(USpan<char> name, out double number)
@@ -385,7 +385,7 @@ namespace Unmanaged.JSON
 
         public readonly bool TryGetNumber(string name, out double number)
         {
-            return TryGetNumber(name.AsSpan(), out number);
+            return TryGetNumber(name.AsUSpan(), out number);
         }
 
         public readonly bool TryGetBoolean(USpan<char> name, out bool boolean)
@@ -402,7 +402,7 @@ namespace Unmanaged.JSON
 
         public readonly bool TryGetBoolean(string name, out bool boolean)
         {
-            return TryGetBoolean(name.AsSpan(), out boolean);
+            return TryGetBoolean(name.AsUSpan(), out boolean);
         }
 
         public readonly bool TryGetObject(USpan<char> name, out JSONObject obj)
@@ -419,7 +419,7 @@ namespace Unmanaged.JSON
 
         public readonly bool TryGetObject(string name, out JSONObject obj)
         {
-            return TryGetObject(name.AsSpan(), out obj);
+            return TryGetObject(name.AsUSpan(), out obj);
         }
 
         public readonly bool TryGetArray(USpan<char> name, out JSONArray array)
@@ -436,7 +436,7 @@ namespace Unmanaged.JSON
 
         public readonly bool TryGetArray(string name, out JSONArray array)
         {
-            return TryGetArray(name.AsSpan(), out array);
+            return TryGetArray(name.AsUSpan(), out array);
         }
 
         readonly void ISerializable.Write(BinaryWriter writer)

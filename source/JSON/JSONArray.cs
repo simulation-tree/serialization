@@ -146,7 +146,7 @@ namespace Unmanaged.JSON
 
         public readonly void Add(string text)
         {
-            Add(text.AsSpan());
+            Add(text.AsUSpan());
         }
 
         public readonly void Add(double number)
