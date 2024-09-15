@@ -237,9 +237,9 @@ namespace Unmanaged.JSON
                         USpan<char> textSpan = listBuffer.AsSpan();
                         uint textLength = jsonReader.GetText(token, textSpan);
                         USpan<char> text = textSpan.Slice(0, textLength);
-                        if (text.length > 0 && text[0] == '"')
+                        if (text.Length > 0 && text[0] == '"')
                         {
-                            text = text.Slice(1, text.length - 2);
+                            text = text.Slice(1, text.Length - 2);
                         }
 
                         jsonArray.Add(text);

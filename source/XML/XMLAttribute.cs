@@ -13,7 +13,7 @@ namespace Unmanaged.XML
             get => name.AsSpan();
             set
             {
-                uint newLength = value.length;
+                uint newLength = value.Length;
                 if (newLength > name.Length)
                 {
                     name.Resize(newLength);
@@ -28,7 +28,7 @@ namespace Unmanaged.XML
             get => value.AsSpan();
             set
             {
-                uint newLength = value.length;
+                uint newLength = value.Length;
                 if (newLength > this.value.Length)
                 {
                     this.value.Resize(newLength);
@@ -82,7 +82,7 @@ namespace Unmanaged.XML
 
         public unsafe readonly override string ToString()
         {
-            using UnmanagedList<char> tempList = new(Name.length + Value.length + 3);
+            using UnmanagedList<char> tempList = new(Name.Length + Value.Length + 3);
             uint length = ToString(tempList);
             return new string(tempList.AsSpan().pointer, 0, (int)length);
         }

@@ -18,7 +18,7 @@ namespace Unmanaged.XML
             get => name.AsSpan();
             set
             {
-                uint newLength = (uint)value.length;
+                uint newLength = (uint)value.Length;
                 if (newLength > name.Length)
                 {
                     name.Resize(newLength);

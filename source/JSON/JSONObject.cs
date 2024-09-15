@@ -472,9 +472,9 @@ namespace Unmanaged.JSON
                         if (jsonReader.ReadToken(out Token nextToken))
                         {
                             USpan<char> nameSpan = buffer.Slice(0, length);
-                            if (nameSpan.length > 0 && nameSpan[0] == '"')
+                            if (nameSpan.Length > 0 && nameSpan[0] == '"')
                             {
-                                nameSpan = nameSpan.Slice(1, nameSpan.length - 2);
+                                nameSpan = nameSpan.Slice(1, nameSpan.Length - 2);
                             }
 
                             if (nextToken.type == Token.Type.True)
@@ -499,9 +499,9 @@ namespace Unmanaged.JSON
                                 USpan<char> textSpan = listBuffer.AsSpan();
                                 uint textLength = jsonReader.GetText(nextToken, textSpan);
                                 USpan<char> text = textSpan.Slice(0, textLength);
-                                if (text.length > 0 && text[0] == '"')
+                                if (text.Length > 0 && text[0] == '"')
                                 {
-                                    text = text.Slice(1, text.length - 2);
+                                    text = text.Slice(1, text.Length - 2);
                                 }
 
                                 jsonObject.Add(nameSpan, text);

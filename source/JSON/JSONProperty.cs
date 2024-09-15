@@ -37,7 +37,7 @@ namespace Unmanaged.JSON
             {
                 if (IsText)
                 {
-                    uint newLength = (uint)value.length * sizeof(char);
+                    uint newLength = (uint)value.Length * sizeof(char);
                     if (length < newLength)
                     {
                         Allocation.Resize(ref this.value, newLength);
@@ -112,7 +112,7 @@ namespace Unmanaged.JSON
         public JSONProperty(USpan<char> name, USpan<char> text)
         {
             this.name = new(name);
-            length = text.length * sizeof(char);
+            length = text.Length * sizeof(char);
             value = new(length);
             value.Write(0, text);
             type = Type.Text;
