@@ -145,9 +145,9 @@ namespace Unmanaged.XML
             uint length = reader.PeekUTF8Span(token.position, token.length, buffer);
             if (buffer[0] == '"')
             {
-                for (uint i = 0; i < length; i++)
+                for (uint i = 0; i < length - 1; i++)
                 {
-                    buffer.pointer[i] = buffer.pointer[i + 1];
+                    buffer[i] = buffer[i + 1];
                 }
 
                 return length - 2;

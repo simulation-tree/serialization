@@ -22,7 +22,7 @@
         {
             USpan<char> buffer = stackalloc char[(int)length];
             uint read = reader.GetText(this, buffer);
-            return new string(buffer.pointer, 0, (int)read);
+            return buffer.Slice(0, read).ToString();
         }
 
         public enum Type : byte

@@ -235,7 +235,7 @@ namespace Unmanaged.JSON
             {
                 for (uint i = 0; i < length - 1; i++)
                 {
-                    buffer.pointer[i] = buffer.pointer[i + 1];
+                    buffer[i] = buffer[i + 1];
                 }
 
                 return length - 2;

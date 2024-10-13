@@ -27,11 +27,14 @@ namespace Unmanaged.JSON
 
         public unsafe override readonly string ToString()
         {
-            using BinaryReader reader = new(AsSpan());
-            using UnmanagedArray<char> buffer = new(Position * 2);
-            USpan<char> bufferSpan = buffer.AsSpan();
-            uint length = reader.ReadUTF8Span(bufferSpan);
-            return new(bufferSpan.pointer, 0, (int)length);
+            BinaryReader reader = new(AsSpan());
+            UnmanagedArray<char> tempArray = new(Position * 2);
+            USpan<char> buffer = tempArray.AsSpan();
+            uint read = reader.ReadUTF8Span(buffer);
+            reader.Dispose();
+            string result = buffer.Slice(0, read).ToString();
+            tempArray.Dispose();
+            return result;
         }
 
         public readonly USpan<byte> AsSpan()

@@ -82,9 +82,11 @@ namespace Unmanaged.XML
 
         public unsafe readonly override string ToString()
         {
-            using UnmanagedList<char> tempList = new(Name.Length + Value.Length + 3);
+            UnmanagedList<char> tempList = new(Name.Length + Value.Length + 3);
             uint length = ToString(tempList);
-            return new string(tempList.AsSpan().pointer, 0, (int)length);
+            string result = tempList.AsSpan().Slice(0, length).ToString();
+            tempList.Dispose();
+            return result;
         }
 
         public readonly uint ToString(UnmanagedList<char> list)

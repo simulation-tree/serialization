@@ -38,7 +38,7 @@
             {
                 USpan<char> buffer = stackalloc char[(int)length];
                 uint textLength = reader.GetText(this, buffer);
-                return new string(buffer.pointer, 0, (int)textLength);
+                return buffer.Slice(0, textLength).ToString();
             }
             else
             {
