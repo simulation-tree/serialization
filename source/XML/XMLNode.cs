@@ -18,10 +18,10 @@ namespace Unmanaged.XML
             get => name.AsSpan();
             set
             {
-                uint newLength = (uint)value.Length;
+                uint newLength = value.Length;
                 if (newLength > name.Length)
                 {
-                    name.Resize(newLength);
+                    name.Length = newLength;
                 }
 
                 value.CopyTo(name.AsSpan());

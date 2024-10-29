@@ -8,14 +8,8 @@ using Unmanaged.JSON;
 
 namespace Serialization.Tests
 {
-    public class JSONTests
+    public class JSONTests : UnmanagedTests
     {
-        [TearDown]
-        public void CleanUp()
-        {
-            Allocations.ThrowIfAny();
-        }
-
         [Test]
         public void ReadSampleJSON()
         {
@@ -78,20 +72,20 @@ namespace Serialization.Tests
 
             string jsonString = obj.ToString();
             JsonNode json = JsonNode.Parse(jsonString) ?? throw new Exception();
-            Assert.That(json["name"].GetValue<string>(), Is.EqualTo("John Doe"));
-            Assert.That(json["age"].GetValue<int>(), Is.EqualTo(42));
-            Assert.That(json["isAlive"].GetValue<bool>(), Is.True);
+            Assert.That(json["name"]!.GetValue<string>(), Is.EqualTo("John Doe"));
+            Assert.That(json["age"]!.GetValue<int>(), Is.EqualTo(42));
+            Assert.That(json["isAlive"]!.GetValue<bool>(), Is.True);
 
             Assert.That(json["address"], Is.Not.Null);
-            Assert.That(json["address"]["streetAddress"].GetValue<string>(), Is.EqualTo("21 2nd Street"));
-            Assert.That(json["address"]["city"].GetValue<string>(), Is.EqualTo("New York"));
-            Assert.That(json["address"]["state"].GetValue<string>(), Is.EqualTo("NY"));
-            Assert.That(json["address"]["seconds"].GetValue<double>(), Is.EqualTo(seconds));
+            Assert.That(json["address"]!["streetAddress"]!.GetValue<string>(), Is.EqualTo("21 2nd Street"));
+            Assert.That(json["address"]!["city"]!.GetValue<string>(), Is.EqualTo("New York"));
+            Assert.That(json["address"]!["state"]!.GetValue<string>(), Is.EqualTo("NY"));
+            Assert.That(json["address"]!["seconds"]!.GetValue<double>(), Is.EqualTo(seconds));
 
             Assert.That(json["inventory"], Is.Not.Null);
-            Assert.That(json["inventory"][0].GetValue<string>(), Is.EqualTo("apples"));
-            Assert.That(json["inventory"][1].GetValue<string>(), Is.EqualTo("oranges"));
-            Assert.That(json["inventory"][2].GetValue<string>(), Is.EqualTo("pears"));
+            Assert.That(json["inventory"]![0]!.GetValue<string>(), Is.EqualTo("apples"));
+            Assert.That(json["inventory"]![1]!.GetValue<string>(), Is.EqualTo("oranges"));
+            Assert.That(json["inventory"]![2]!.GetValue<string>(), Is.EqualTo("pears"));
             obj.Dispose();
         }
 

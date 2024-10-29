@@ -16,7 +16,7 @@ namespace Unmanaged.XML
                 uint newLength = value.Length;
                 if (newLength > name.Length)
                 {
-                    name.Resize(newLength);
+                    name.Length = newLength;
                 }
 
                 value.CopyTo(name.AsSpan());
@@ -31,7 +31,7 @@ namespace Unmanaged.XML
                 uint newLength = value.Length;
                 if (newLength > this.value.Length)
                 {
-                    this.value.Resize(newLength);
+                    this.value.Length = newLength;
                 }
 
                 value.CopyTo(this.value.AsSpan());
