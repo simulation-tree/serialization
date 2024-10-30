@@ -1,19 +1,19 @@
-﻿using Unmanaged.Collections;
+﻿using Collections;
 
 namespace Unmanaged.JSON.Array
 {
     public unsafe struct UnsafeJSONArray
     {
-        private UnmanagedList<JSONProperty> elements;
+        private List<JSONProperty> elements;
 
-        private UnsafeJSONArray(UnmanagedList<JSONProperty> elements)
+        private UnsafeJSONArray(List<JSONProperty> elements)
         {
             this.elements = elements;
         }
 
         public static UnsafeJSONArray* Allocate()
         {
-            UnmanagedList<JSONProperty> elements = UnmanagedList<JSONProperty>.Create();
+            List<JSONProperty> elements = List<JSONProperty>.Create();
             UnsafeJSONArray* obj = Allocations.Allocate<UnsafeJSONArray>();
             obj[0] = new(elements);
             return obj;
@@ -27,7 +27,7 @@ namespace Unmanaged.JSON.Array
         public static void Free(ref UnsafeJSONArray* obj)
         {
             Allocations.ThrowIfNull(obj);
-            UnmanagedList<JSONProperty> properties = GetElements(obj);
+            List<JSONProperty> properties = GetElements(obj);
             for (uint i = 0; i < properties.Count; i++)
             {
                 JSONProperty property = properties[i];
@@ -44,7 +44,7 @@ namespace Unmanaged.JSON.Array
             return obj->elements.Count;
         }
 
-        public static UnmanagedList<JSONProperty> GetElements(UnsafeJSONArray* obj)
+        public static List<JSONProperty> GetElements(UnsafeJSONArray* obj)
         {
             Allocations.ThrowIfNull(obj);
             return obj->elements;

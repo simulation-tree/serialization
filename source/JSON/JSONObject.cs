@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Collections;
+using System;
 using System.Diagnostics;
-using Unmanaged.Collections;
 using Unmanaged.JSON.Unsafe;
 
 namespace Unmanaged.JSON
@@ -12,7 +12,7 @@ namespace Unmanaged.JSON
     {
         private UnsafeJSONObject* value;
 
-        private readonly UnmanagedList<JSONProperty> PropertiesList => UnsafeJSONObject.GetProperties(value);
+        private readonly List<JSONProperty> PropertiesList => UnsafeJSONObject.GetProperties(value);
 
         public readonly USpan<JSONProperty> Properties => PropertiesList.AsSpan();
         public readonly uint Count => PropertiesList.Count;
@@ -27,7 +27,7 @@ namespace Unmanaged.JSON
                     throw new IndexOutOfRangeException();
                 }
 
-                UnmanagedList<JSONProperty> properties = PropertiesList;
+                List<JSONProperty> properties = PropertiesList;
                 return ref properties[index];
             }
         }
@@ -82,14 +82,14 @@ namespace Unmanaged.JSON
 
         public readonly void Clear()
         {
-            UnmanagedList<JSONProperty> properties = PropertiesList;
+            List<JSONProperty> properties = PropertiesList;
             properties.Clear();
         }
 
         public readonly void RemoveAt(uint index)
         {
             ThrowIfDisposed();
-            UnmanagedList<JSONProperty> properties = PropertiesList;
+            List<JSONProperty> properties = PropertiesList;
             properties.RemoveAtBySwapping(index);
         }
 
@@ -97,7 +97,7 @@ namespace Unmanaged.JSON
         {
             ThrowIfDisposed();
             T value = default;
-            using UnmanagedList<char> result = UnmanagedList<char>.Create();
+            using List<char> result = List<char>.Create();
             ToString(result);
             using BinaryReader reader = BinaryReader.CreateFromUTF8(result.AsSpan());
             JSONReader jsonReader = new(reader);
@@ -106,10 +106,10 @@ namespace Unmanaged.JSON
             return value;
         }
 
-        public readonly void ToString(UnmanagedList<char> result, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(List<char> result, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             ThrowIfDisposed();
-            UnmanagedList<JSONProperty> properties = PropertiesList;
+            List<JSONProperty> properties = PropertiesList;
             result.Add('{');
             if (properties.Count > 0)
             {
@@ -171,7 +171,7 @@ namespace Unmanaged.JSON
 
         public readonly override string ToString()
         {
-            UnmanagedList<char> buffer = UnmanagedList<char>.Create();
+            List<char> buffer = List<char>.Create();
             ToString(buffer);
             string result = buffer.AsSpan().ToString();
             buffer.Dispose();
@@ -190,7 +190,7 @@ namespace Unmanaged.JSON
         public readonly void Add(USpan<char> name, USpan<char> text)
         {
             ThrowIfDisposed();
-            UnmanagedList<JSONProperty> properties = PropertiesList;
+            List<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name, text);
             properties.Add(property);
         }
@@ -203,7 +203,7 @@ namespace Unmanaged.JSON
         public readonly void Add(USpan<char> name, double number)
         {
             ThrowIfDisposed();
-            UnmanagedList<JSONProperty> properties = PropertiesList;
+            List<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name, number);
             properties.Add(property);
         }
@@ -216,7 +216,7 @@ namespace Unmanaged.JSON
         public readonly void Add(USpan<char> name, bool boolean)
         {
             ThrowIfDisposed();
-            UnmanagedList<JSONProperty> properties = PropertiesList;
+            List<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name, boolean);
             properties.Add(property);
         }
@@ -229,7 +229,7 @@ namespace Unmanaged.JSON
         public readonly void Add(USpan<char> name, JSONObject obj)
         {
             ThrowIfDisposed();
-            UnmanagedList<JSONProperty> properties = PropertiesList;
+            List<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name, obj);
             properties.Add(property);
         }
@@ -242,7 +242,7 @@ namespace Unmanaged.JSON
         public readonly void Add(USpan<char> name, JSONArray array)
         {
             ThrowIfDisposed();
-            UnmanagedList<JSONProperty> properties = PropertiesList;
+            List<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name, array);
             properties.Add(property);
         }
@@ -255,7 +255,7 @@ namespace Unmanaged.JSON
         public readonly void AddNull(USpan<char> name)
         {
             ThrowIfDisposed();
-            UnmanagedList<JSONProperty> properties = PropertiesList;
+            List<JSONProperty> properties = PropertiesList;
             JSONProperty property = new(name);
             properties.Add(property);
         }
@@ -268,7 +268,7 @@ namespace Unmanaged.JSON
         public readonly bool Contains(USpan<char> name)
         {
             ThrowIfDisposed();
-            UnmanagedList<JSONProperty> properties = PropertiesList;
+            List<JSONProperty> properties = PropertiesList;
             uint count = Count;
             for (uint i = 0; i < count; i++)
             {
@@ -441,7 +441,7 @@ namespace Unmanaged.JSON
 
         readonly void ISerializable.Write(BinaryWriter writer)
         {
-            UnmanagedList<char> list = UnmanagedList<char>.Create();
+            List<char> list = List<char>.Create();
             ToString(list);
             writer.WriteUTF8Text(list.AsSpan());
             list.Dispose();
@@ -495,7 +495,7 @@ namespace Unmanaged.JSON
                             }
                             else if (nextToken.type == Token.Type.Text)
                             {
-                                UnmanagedArray<char> listBuffer = new(nextToken.length * 4);
+                                Array<char> listBuffer = new(nextToken.length * 4);
                                 USpan<char> textSpan = listBuffer.AsSpan();
                                 uint textLength = jsonReader.GetText(nextToken, textSpan);
                                 USpan<char> text = textSpan.Slice(0, textLength);

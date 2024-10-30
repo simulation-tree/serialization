@@ -1,11 +1,11 @@
-﻿using System;
-using Unmanaged.Collections;
+﻿using Collections;
+using System;
 
 namespace Unmanaged.JSON
 {
     public struct JSONProperty : IDisposable
     {
-        private readonly UnmanagedArray<char> name;
+        private readonly Array<char> name;
         private Allocation value;
         private uint length;
         private Type type;
@@ -182,7 +182,7 @@ namespace Unmanaged.JSON
             type = default;
         }
 
-        public unsafe readonly void ToString(UnmanagedList<char> result, bool prefixName, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public unsafe readonly void ToString(List<char> result, bool prefixName, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             if (prefixName)
             {
@@ -236,7 +236,7 @@ namespace Unmanaged.JSON
 
         public readonly override string ToString()
         {
-            UnmanagedList<char> buffer = new(4);
+            List<char> buffer = new(4);
             ToString(buffer, true);
             string result = buffer.AsSpan().ToString();
             buffer.Dispose();

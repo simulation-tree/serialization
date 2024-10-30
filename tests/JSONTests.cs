@@ -1,9 +1,9 @@
+using Collections;
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Unmanaged;
-using Unmanaged.Collections;
 using Unmanaged.JSON;
 
 namespace Serialization.Tests
@@ -109,7 +109,7 @@ namespace Serialization.Tests
 
             jsonObject["age"].Number++;
 
-            using UnmanagedList<char> buffer = UnmanagedList<char>.Create();
+            using Collections.List<char> buffer = Collections.List<char>.Create();
             jsonObject.ToString(buffer, "    ".AsUSpan(), true, true);
             USpan<char> jsonText = buffer.AsSpan();
             Console.WriteLine(jsonText.ToString());
@@ -124,7 +124,7 @@ namespace Serialization.Tests
             settings.Add("isAlive", true);
             settings.Add("another", "aA");
 
-            List<(string name, object? value)> settingsList = new();
+            System.Collections.Generic.List<(string name, object? value)> settingsList = new();
             using BinaryReader reader = BinaryReader.CreateFromUTF8(settings.ToString());
             JSONReader jsonReader = new(reader);
             jsonReader.ReadToken(); //{
@@ -286,7 +286,7 @@ namespace Serialization.Tests
         {
             JsonObject json = new();
             JsonArray inventory = new();
-            List<DummyJSONObject> originals = new();
+            System.Collections.Generic.List<DummyJSONObject> originals = new();
             for (int i = 0; i < 32; i++)
             {
                 Guid g = Guid.NewGuid();
@@ -325,8 +325,8 @@ namespace Serialization.Tests
             public int quantity;
             public bool isRare;
 
-            private UnmanagedArray<char> name;
-            private UnmanagedArray<char> value;
+            private Array<char> name;
+            private Array<char> value;
 
             public readonly USpan<char> Name => name.AsSpan();
             public readonly USpan<char> Value => value.AsSpan();

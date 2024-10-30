@@ -1,14 +1,14 @@
-﻿using System;
-using Unmanaged.Collections;
+﻿using Collections;
+using System;
 
 namespace Unmanaged.XML
 {
     public struct XMLNode : IDisposable, ISerializable, IEquatable<XMLNode>
     {
-        private UnmanagedArray<char> name;
-        private UnmanagedList<XMLAttribute> attributes;
-        private UnmanagedList<char> content;
-        private UnmanagedList<XMLNode> children;
+        private Array<char> name;
+        private List<XMLAttribute> attributes;
+        private List<char> content;
+        private List<XMLNode> children;
 
         /// <summary>
         /// Name of the node.
@@ -96,22 +96,22 @@ namespace Unmanaged.XML
 #if NET
         public XMLNode()
         {
-            name = UnmanagedArray<char>.Create();
-            attributes = UnmanagedList<XMLAttribute>.Create();
-            content = UnmanagedList<char>.Create();
-            children = UnmanagedList<XMLNode>.Create();
+            name = Array<char>.Create();
+            attributes = List<XMLAttribute>.Create();
+            content = List<char>.Create();
+            children = List<XMLNode>.Create();
         }
 #endif
 
         public XMLNode(USpan<char> name)
         {
             this.name = new(name);
-            attributes = UnmanagedList<XMLAttribute>.Create();
-            content = UnmanagedList<char>.Create();
-            children = UnmanagedList<XMLNode>.Create();
+            attributes = List<XMLAttribute>.Create();
+            content = List<char>.Create();
+            children = List<XMLNode>.Create();
         }
 
-        private XMLNode(UnmanagedArray<char> name, UnmanagedList<XMLAttribute> attributes, UnmanagedList<char> content, UnmanagedList<XMLNode> children)
+        private XMLNode(Array<char> name, List<XMLAttribute> attributes, List<char> content, List<XMLNode> children)
         {
             this.name = name;
             this.attributes = attributes;
@@ -139,7 +139,7 @@ namespace Unmanaged.XML
 
         public readonly override string ToString()
         {
-            UnmanagedList<char> list = UnmanagedList<char>.Create();
+            List<char> list = List<char>.Create();
             ToString(list, "  ".AsUSpan(), true, true);
             string str = list.AsSpan().ToString();
             list.Dispose();
@@ -148,7 +148,7 @@ namespace Unmanaged.XML
 
         readonly void ISerializable.Write(BinaryWriter writer)
         {
-            UnmanagedList<char> list = UnmanagedList<char>.Create();
+            List<char> list = List<char>.Create();
             ToString(list);
             writer.WriteSpan<char>(list.AsSpan());
             list.Dispose();
@@ -156,9 +156,9 @@ namespace Unmanaged.XML
 
         void ISerializable.Read(BinaryReader reader)
         {
-            attributes = UnmanagedList<XMLAttribute>.Create();
-            content = UnmanagedList<char>.Create();
-            children = UnmanagedList<XMLNode>.Create();
+            attributes = List<XMLAttribute>.Create();
+            content = List<char>.Create();
+            children = List<XMLNode>.Create();
 
             XMLReader xmlReader = new(reader);
             Token token = xmlReader.ReadToken(); //<
@@ -210,7 +210,7 @@ namespace Unmanaged.XML
                     }
                     else
                     {
-                        using UnmanagedArray<char> temp = new(token.length);
+                        using Array<char> temp = new(token.length);
                         USpan<char> tempSpan = temp.AsSpan();
                         uint written = reader.PeekUTF8Span(token.position, token.length, tempSpan);
                         content.AddRange(tempSpan.Slice(0, written));
@@ -257,7 +257,7 @@ namespace Unmanaged.XML
             }
         }
 
-        public readonly void ToString(UnmanagedList<char> list, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(List<char> list, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             for (byte i = 0; i < depth; i++)
             {
@@ -536,10 +536,10 @@ namespace Unmanaged.XML
 
         public static XMLNode Create()
         {
-            UnmanagedArray<char> name = UnmanagedArray<char>.Create();
-            UnmanagedList<XMLAttribute> attributes = UnmanagedList<XMLAttribute>.Create();
-            UnmanagedList<char> content = UnmanagedList<char>.Create();
-            UnmanagedList<XMLNode> children = UnmanagedList<XMLNode>.Create();
+            Array<char> name = Array<char>.Create();
+            List<XMLAttribute> attributes = List<XMLAttribute>.Create();
+            List<char> content = List<char>.Create();
+            List<XMLNode> children = List<XMLNode>.Create();
             return new XMLNode(name, attributes, content, children);
         }
 

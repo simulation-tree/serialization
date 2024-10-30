@@ -1,12 +1,12 @@
-﻿using System;
-using Unmanaged.Collections;
+﻿using Collections;
+using System;
 
 namespace Unmanaged.XML
 {
     public readonly struct XMLAttribute : IDisposable
     {
-        private readonly UnmanagedArray<char> name;
-        private readonly UnmanagedArray<char> value;
+        private readonly Array<char> name;
+        private readonly Array<char> value;
 
         public readonly USpan<char> Name
         {
@@ -82,14 +82,14 @@ namespace Unmanaged.XML
 
         public unsafe readonly override string ToString()
         {
-            UnmanagedList<char> tempList = new(Name.Length + Value.Length + 3);
+            List<char> tempList = new(Name.Length + Value.Length + 3);
             uint length = ToString(tempList);
             string result = tempList.AsSpan().Slice(0, length).ToString();
             tempList.Dispose();
             return result;
         }
 
-        public readonly uint ToString(UnmanagedList<char> list)
+        public readonly uint ToString(List<char> list)
         {
             uint count = list.Count;
             list.AddRange(Name);

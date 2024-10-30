@@ -1,19 +1,19 @@
-﻿using Unmanaged.Collections;
+﻿using Collections;
 
 namespace Unmanaged.JSON.Unsafe
 {
     public unsafe struct UnsafeJSONObject
     {
-        private UnmanagedList<JSONProperty> properties;
+        private List<JSONProperty> properties;
 
-        private UnsafeJSONObject(UnmanagedList<JSONProperty> properties)
+        private UnsafeJSONObject(List<JSONProperty> properties)
         {
             this.properties = properties;
         }
 
         public static UnsafeJSONObject* Allocate()
         {
-            UnmanagedList<JSONProperty> properties = UnmanagedList<JSONProperty>.Create();
+            List<JSONProperty> properties = List<JSONProperty>.Create();
             UnsafeJSONObject* obj = Allocations.Allocate<UnsafeJSONObject>();
             obj[0] = new(properties);
             return obj;
@@ -38,7 +38,7 @@ namespace Unmanaged.JSON.Unsafe
             Allocations.Free(ref obj);
         }
 
-        public static UnmanagedList<JSONProperty> GetProperties(UnsafeJSONObject* obj)
+        public static List<JSONProperty> GetProperties(UnsafeJSONObject* obj)
         {
             Allocations.ThrowIfNull(obj);
             return obj->properties;
