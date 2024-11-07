@@ -19,35 +19,38 @@ namespace Unmanaged.JSON.Array
             return obj;
         }
 
-        public static bool IsDisposed(UnsafeJSONArray* obj)
+        public static bool IsDisposed(UnsafeJSONArray* array)
         {
-            return Allocations.IsNull(obj) || obj->elements.IsDisposed;
+            return array is null;
         }
 
-        public static void Free(ref UnsafeJSONArray* obj)
+        public static void Free(ref UnsafeJSONArray* array)
         {
-            Allocations.ThrowIfNull(obj);
-            List<JSONProperty> properties = GetElements(obj);
+            Allocations.ThrowIfNull(array);
+
+            List<JSONProperty> properties = GetElements(array);
             for (uint i = 0; i < properties.Count; i++)
             {
                 JSONProperty property = properties[i];
                 property.Dispose();
             }
 
-            obj->elements.Dispose();
-            Allocations.Free(ref obj);
+            array->elements.Dispose();
+            Allocations.Free(ref array);
         }
 
-        public static uint GetCount(UnsafeJSONArray* obj)
+        public static uint GetCount(UnsafeJSONArray* array)
         {
-            Allocations.ThrowIfNull(obj);
-            return obj->elements.Count;
+            Allocations.ThrowIfNull(array);
+
+            return array->elements.Count;
         }
 
-        public static List<JSONProperty> GetElements(UnsafeJSONArray* obj)
+        public static List<JSONProperty> GetElements(UnsafeJSONArray* array)
         {
-            Allocations.ThrowIfNull(obj);
-            return obj->elements;
+            Allocations.ThrowIfNull(array);
+
+            return array->elements;
         }
     }
 }

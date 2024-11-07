@@ -73,7 +73,7 @@ namespace Unmanaged.JSON
 
         private void WriteText(USpan<char> value)
         {
-            last = new(writer.Position, (uint)(sizeof(char) * (2 + value.Length)), Token.Type.Text);
+            last = new(writer.Position, sizeof(char) * (2 + value.Length), Token.Type.Text);
             writer.WriteUTF8Character('"');
             writer.WriteUTF8Text(value);
             writer.WriteUTF8Character('"');

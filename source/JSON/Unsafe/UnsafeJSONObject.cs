@@ -21,12 +21,13 @@ namespace Unmanaged.JSON.Unsafe
 
         public static bool IsDisposed(UnsafeJSONObject* obj)
         {
-            return Allocations.IsNull(obj) || obj->properties.IsDisposed;
+            return obj is null;
         }
 
         public static void Free(ref UnsafeJSONObject* obj)
         {
             Allocations.ThrowIfNull(obj);
+
             uint count = obj->properties.Count;
             for (uint i = 0; i < count; i++)
             {
@@ -41,6 +42,7 @@ namespace Unmanaged.JSON.Unsafe
         public static List<JSONProperty> GetProperties(UnsafeJSONObject* obj)
         {
             Allocations.ThrowIfNull(obj);
+
             return obj->properties;
         }
     }
