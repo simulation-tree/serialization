@@ -212,7 +212,7 @@ namespace Unmanaged.JSON
                 {
                     T obj = default;
                     obj.Read(this);
-                    if (PeekToken(out var peek) && peek.type == Token.Type.EndObject)
+                    if (PeekToken(out Token peek) && peek.type == Token.Type.EndObject)
                     {
                         ReadToken();
                     }

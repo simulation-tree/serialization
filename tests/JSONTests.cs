@@ -207,7 +207,7 @@ namespace Serialization.Tests
         [Test]
         public void DeserializeIntoStruct()
         {
-            var g = Guid.NewGuid();
+            Guid g = Guid.NewGuid();
             bool rare = g.GetHashCode() % 2 == 0;
             using JSONObject item = new();
             item.Add("name", "Item 25");
