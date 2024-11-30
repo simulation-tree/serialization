@@ -97,7 +97,7 @@ namespace Unmanaged.JSON
         {
             ThrowIfDisposed();
             T value = default;
-            using List<char> result = List<char>.Create();
+            using List<char> result = new(4);
             ToString(result);
             using BinaryReader reader = BinaryReader.CreateFromUTF8(result.AsSpan());
             JSONReader jsonReader = new(reader);
@@ -171,7 +171,7 @@ namespace Unmanaged.JSON
 
         public readonly override string ToString()
         {
-            List<char> buffer = List<char>.Create();
+            List<char> buffer = new(4);
             ToString(buffer);
             string result = buffer.AsSpan().ToString();
             buffer.Dispose();
@@ -441,7 +441,7 @@ namespace Unmanaged.JSON
 
         readonly void ISerializable.Write(BinaryWriter writer)
         {
-            List<char> list = List<char>.Create();
+            List<char> list = new(4);
             ToString(list);
             writer.WriteUTF8Text(list.AsSpan());
             list.Dispose();

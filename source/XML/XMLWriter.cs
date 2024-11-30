@@ -11,7 +11,7 @@ namespace Unmanaged.XML
 #if NET
         public XMLWriter()
         {
-            writer = BinaryWriter.Create();
+            writer = new(4);
         }
 #endif
 
@@ -70,7 +70,7 @@ namespace Unmanaged.XML
 
         public static XMLWriter Create()
         {
-            return new(BinaryWriter.Create());
+            return new(new(4));
         }
     }
 }

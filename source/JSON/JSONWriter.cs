@@ -193,7 +193,7 @@ namespace Unmanaged.JSON
 
         public static JSONWriter Create()
         {
-            return new(BinaryWriter.Create());
+            return new(new BinaryWriter(4));
         }
     }
 }

@@ -1,10 +1,10 @@
 using Collections;
 using System;
-using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Unmanaged;
 using Unmanaged.JSON;
+using Unmanaged.Tests;
 
 namespace Serialization.Tests
 {
@@ -109,7 +109,7 @@ namespace Serialization.Tests
 
             jsonObject["age"].Number++;
 
-            using Collections.List<char> buffer = Collections.List<char>.Create();
+            using List<char> buffer = new();
             jsonObject.ToString(buffer, "    ".AsUSpan(), true, true);
             USpan<char> jsonText = buffer.AsSpan();
             Console.WriteLine(jsonText.ToString());

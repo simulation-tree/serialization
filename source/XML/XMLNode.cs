@@ -96,19 +96,19 @@ namespace Unmanaged.XML
 #if NET
         public XMLNode()
         {
-            name = Array<char>.Create();
-            attributes = List<XMLAttribute>.Create();
-            content = List<char>.Create();
-            children = List<XMLNode>.Create();
+            name = new(4);
+            attributes = new(4);
+            content = new(4);
+            children = new(4);
         }
 #endif
 
         public XMLNode(USpan<char> name)
         {
             this.name = new(name);
-            attributes = List<XMLAttribute>.Create();
-            content = List<char>.Create();
-            children = List<XMLNode>.Create();
+            attributes = new(4);
+            content = new(4);
+            children = new(4);
         }
 
         private XMLNode(Array<char> name, List<XMLAttribute> attributes, List<char> content, List<XMLNode> children)
@@ -139,7 +139,7 @@ namespace Unmanaged.XML
 
         public readonly override string ToString()
         {
-            List<char> list = List<char>.Create();
+            List<char> list = new(4);
             ToString(list, "  ".AsUSpan(), true, true);
             string str = list.AsSpan().ToString();
             list.Dispose();
@@ -148,17 +148,17 @@ namespace Unmanaged.XML
 
         readonly void ISerializable.Write(BinaryWriter writer)
         {
-            List<char> list = List<char>.Create();
+            List<char> list = new(4);
             ToString(list);
-            writer.WriteSpan<char>(list.AsSpan());
+            writer.WriteSpan(list.AsSpan());
             list.Dispose();
         }
 
         void ISerializable.Read(BinaryReader reader)
         {
-            attributes = List<XMLAttribute>.Create();
-            content = List<char>.Create();
-            children = List<XMLNode>.Create();
+            attributes = new(4);
+            content = new(4);
+            children = new(4);
 
             XMLReader xmlReader = new(reader);
             Token token = xmlReader.ReadToken(); //<
@@ -337,7 +337,7 @@ namespace Unmanaged.XML
 
         public readonly bool Remove(XMLNode node)
         {
-            return children.TryRemove(node);
+            return children.TryRemoveBySwapping(node);
         }
 
         public readonly uint IndexOf(XMLNode node)
@@ -536,10 +536,10 @@ namespace Unmanaged.XML
 
         public static XMLNode Create()
         {
-            Array<char> name = Array<char>.Create();
-            List<XMLAttribute> attributes = List<XMLAttribute>.Create();
-            List<char> content = List<char>.Create();
-            List<XMLNode> children = List<XMLNode>.Create();
+            Array<char> name = new(4);
+            List<XMLAttribute> attributes = new(4);
+            List<char> content = new(4);
+            List<XMLNode> children = new(4);
             return new XMLNode(name, attributes, content, children);
         }
 
