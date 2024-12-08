@@ -1,0 +1,5 @@
+﻿<None Include="..\README.md">
+	<Pack>True</Pack>
+	<PackagePath>\</PackagePath>
+	<Another></Another>
+</None>

@@ -185,7 +185,7 @@ namespace Unmanaged.XML
                         return;
                     }
 
-                    throw new Exception($"Unexpected token {token.type} after '/' when reading end of node attributes");
+                    throw new Exception($"Unexpected token `{token.type}` after '/' when reading end of node attributes");
                 }
                 else
                 {
@@ -197,6 +197,11 @@ namespace Unmanaged.XML
                 }
             }
 
+            if (token.type != Token.Type.Close && token.type != Token.Type.Unknown)
+            {
+                throw new Exception($"Unexpected token `{token.type}` when reading end of node attributes");
+            }
+
             //read content
             while (xmlReader.ReadToken(out token))
             {
@@ -204,6 +209,26 @@ namespace Unmanaged.XML
                 {
                     if (token.type == Token.Type.Open)
                     {
+                        //check if this open node closes itself
+                        if (xmlReader.PeekToken(out Token closeToken) && closeToken.type == Token.Type.Slash)
+                        {
+                            if (xmlReader.PeekToken(closeToken.position + closeToken.length, out closeToken) && closeToken.type == Token.Type.Text)
+                            {
+                                USpan<char> closingName = nameBuffer.Slice(0, xmlReader.GetText(closeToken, nameBuffer));
+                                if (closingName.SequenceEqual(Name))
+                                {
+                                    xmlReader.ReadToken(); //open
+                                    xmlReader.ReadToken(); //slash
+                                    xmlReader.ReadToken(); //close
+                                    return;
+                                }
+                                else
+                                {
+                                    throw new Exception($"Encountered closing node `{closingName.ToString()}` while reading `{Name.ToString()}`");
+                                }
+                            }
+                        }   
+                        
                         reader.Position -= token.length;
                         XMLNode child = xmlReader.ReadNode();
                         children.Add(child);
@@ -233,26 +258,26 @@ namespace Unmanaged.XML
                                     next = xmlReader.ReadToken(); //close
                                     if (next.type != Token.Type.Close)
                                     {
-                                        throw new Exception($"Unexpected token {next.type} when reading closing node {closingName.ToString()}");
+                                        throw new Exception($"Unexpected token `{next.type}` when reading closing node `{closingName.ToString()}`");
                                     }
 
                                     return;
                                 }
                                 else
                                 {
-                                    throw new Exception($"Unexpected closing node {closingName.ToString()} when reading node {Name.ToString()}");
+                                    throw new Exception($"Unexpected closing node `{closingName.ToString()}` when reading node `{Name.ToString()}`");
                                 }
                             }
                             else
                             {
-                                throw new Exception($"Unexpected token {next.type} when reading closing node");
+                                throw new Exception($"Unexpected token `{next.type}` when reading closing node");
                             }
                         }
                     }
                 }
                 else
                 {
-                    throw new Exception($"Unexpected token {token.type} when reading content inside a node");
+                    throw new Exception($"Unexpected token `{token.type}` when reading content inside a node");
                 }
             }
         }

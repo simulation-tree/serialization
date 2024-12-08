@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Unmanaged;
 using Unmanaged.XML;
 
@@ -87,6 +89,16 @@ namespace Serialization.Tests
             using XMLNode projectXml = reader.ReadObject<XMLNode>();
             string str = projectXml.ToString();
             Console.WriteLine(str);
+        }
+
+        [Test]
+        public void ReadEmptyNodes()
+        {
+            using System.IO.Stream xmlFileStream = GetType().Assembly.GetManifestResourceStream("Serialization.Tests.XMLFile1.xml") ?? throw new Exception();
+            using BinaryReader reader = new(xmlFileStream);
+            XMLReader xmlReader = new(reader);
+            using XMLNode node = xmlReader.ReadNode();
+            Console.WriteLine(node);
         }
     }
 }

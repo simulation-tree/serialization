@@ -7,14 +7,21 @@ namespace Unmanaged.XML
         private BinaryReader reader;
         private bool inside;
 
-        public uint Position
-        {
-            readonly get => reader.Position;
-            set => reader.Position = value;
-        }
+        public readonly ref uint Position => ref reader.Position;
 
         public readonly uint Length => reader.Length;
 
+#if NET
+        [Obsolete("Default constructor not available", true)]
+        public XMLReader()
+        {
+            throw new NotSupportedException();
+        }
+#endif
+
+        /// <summary>
+        /// Creates a new XML format reader on top of the given <see cref="BinaryReader"/>.
+        /// </summary>
         public XMLReader(BinaryReader reader)
         {
             this.reader = reader;
@@ -64,7 +71,12 @@ namespace Unmanaged.XML
 
                     throw new Exception($"Invalid XML, was reading text starting with '\"' but matching one to close was not found.");
                 }
-                else if (char.IsLetterOrDigit(c))
+                else if (c == '=')
+                {
+                    //skip
+                    position += cLength;
+                }
+                else if (char.IsLetterOrDigit(c) || !IsWhitespace(c))
                 {
                     uint start = position;
                     position += cLength;
@@ -153,6 +165,11 @@ namespace Unmanaged.XML
                 return length - 2;
             }
             else return length;
+        }
+
+        private static bool IsWhitespace(char c)
+        {
+            return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == (char)65279;
         }
     }
 }
