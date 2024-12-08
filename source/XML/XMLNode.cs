@@ -9,6 +9,7 @@ namespace Unmanaged.XML
         private List<XMLAttribute> attributes;
         private List<char> content;
         private List<XMLNode> children;
+        private bool prologue;
 
         /// <summary>
         /// Name of the node.
@@ -40,6 +41,8 @@ namespace Unmanaged.XML
                 content.AddRange(value);
             }
         }
+
+        public readonly bool IsPrologue => prologue;
 
         public readonly ref XMLNode this[uint index]
         {
@@ -111,12 +114,13 @@ namespace Unmanaged.XML
             children = new(4);
         }
 
-        private XMLNode(Array<char> name, List<XMLAttribute> attributes, List<char> content, List<XMLNode> children)
+        private XMLNode(Array<char> name, List<XMLAttribute> attributes, List<char> content, List<XMLNode> children, bool prologue)
         {
             this.name = name;
             this.attributes = attributes;
             this.content = content;
             this.children = children;
+            this.prologue = prologue;
         }
 
         public void Dispose()
@@ -163,6 +167,12 @@ namespace Unmanaged.XML
             XMLReader xmlReader = new(reader);
             Token token = xmlReader.ReadToken(); //<
 
+            if (xmlReader.PeekToken(out Token nextToken) && nextToken.type == Token.Type.Prologue)
+            {
+                prologue = true;
+                xmlReader.ReadToken();
+            }
+
             //read name
             token = xmlReader.ReadToken();
             USpan<char> nameBuffer = stackalloc char[256];
@@ -176,6 +186,10 @@ namespace Unmanaged.XML
                 if (token.type == Token.Type.Close)
                 {
                     break; //exit first node (assume there will be a closing node)
+                }
+                else if (token.type == Token.Type.Prologue)
+                {
+                    continue;
                 }
                 else if (token.type == Token.Type.Slash)
                 {
@@ -227,8 +241,8 @@ namespace Unmanaged.XML
                                     throw new Exception($"Encountered closing node `{closingName.ToString()}` while reading `{Name.ToString()}`");
                                 }
                             }
-                        }   
-                        
+                        }
+
                         reader.Position -= token.length;
                         XMLNode child = xmlReader.ReadNode();
                         children.Add(child);
@@ -290,6 +304,11 @@ namespace Unmanaged.XML
             }
 
             list.Add('<');
+            if (prologue)
+            {
+                list.Add('?');
+            }
+
             list.AddRange(Name);
             for (uint i = 0; i < attributes.Count; i++)
             {
@@ -300,9 +319,16 @@ namespace Unmanaged.XML
 
             if (content.Count > 0 || children.Count > 0)
             {
-                list.Add('>');
+                if (prologue)
+                {
+                    list.Add('?');
+                }
+                else
+                {
+                    depth++;
+                }
 
-                depth++;
+                list.Add('>');
                 list.AddRange(Content);
 
                 if (children.Count > 0)
@@ -320,10 +346,13 @@ namespace Unmanaged.XML
                     }
                 }
 
-                list.Add('<');
-                list.Add('/');
-                list.AddRange(Name);
-                list.Add('>');
+                if (!prologue)
+                {
+                    list.Add('<');
+                    list.Add('/');
+                    list.AddRange(Name);
+                    list.Add('>');
+                }
             }
             else
             {
@@ -565,7 +594,7 @@ namespace Unmanaged.XML
             List<XMLAttribute> attributes = new(4);
             List<char> content = new(4);
             List<XMLNode> children = new(4);
-            return new XMLNode(name, attributes, content, children);
+            return new XMLNode(name, attributes, content, children, false);
         }
 
         public static bool operator ==(XMLNode left, XMLNode right)

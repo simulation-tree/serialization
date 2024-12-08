@@ -98,7 +98,21 @@ namespace Serialization.Tests
             using BinaryReader reader = new(xmlFileStream);
             XMLReader xmlReader = new(reader);
             using XMLNode node = xmlReader.ReadNode();
-            Console.WriteLine(node);
+            Assert.That(node.Name.ToString(), Is.EqualTo("None"));
+            Assert.That(node.Attributes.Length, Is.EqualTo(1));
+            Assert.That(node.Attributes[0].Name.ToString(), Is.EqualTo("Include"));
+            Assert.That(node.Attributes[0].Value.ToString(), Is.EqualTo("..\\README.md"));
+            Assert.That(node.Children.Length, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void ReadWithPrologue()
+        {
+            using System.IO.Stream xmlFileStream = GetType().Assembly.GetManifestResourceStream("Serialization.Tests.XMLFile2.xml") ?? throw new Exception();
+            using BinaryReader reader = new(xmlFileStream);
+            XMLReader xmlReader = new(reader);
+            using XMLNode node = xmlReader.ReadNode();
+            Assert.That(node.IsPrologue, Is.True);
         }
     }
 }

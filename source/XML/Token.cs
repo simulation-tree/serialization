@@ -1,4 +1,6 @@
-﻿namespace Unmanaged.XML
+﻿using Collections;
+
+namespace Unmanaged.XML
 {
     public readonly struct Token
     {
@@ -22,27 +24,35 @@
 
         public unsafe readonly string ToString(XMLReader reader)
         {
-            if (type == Type.Open)
+            using List<char> list = new(length);
+            uint copied = ToString(reader, list);
+            return list.AsSpan(0, copied).ToString();
+        }
+
+        /// <summary>
+        /// Adds the string representation of this token to the list.
+        /// </summary>
+        /// <returns>Amount of <see cref="char"/> values added.</returns>
+        public readonly uint ToString(XMLReader reader, List<char> list)
+        {
+            switch (type)
             {
-                return "<";
-            }
-            else if (type == Type.Close)
-            {
-                return ">";
-            }
-            else if (type == Type.Slash)
-            {
-                return "/";
-            }
-            else if (type == Type.Text)
-            {
-                USpan<char> buffer = stackalloc char[(int)length];
-                uint textLength = reader.GetText(this, buffer);
-                return buffer.Slice(0, textLength).ToString();
-            }
-            else
-            {
-                return string.Empty;
+                case Type.Open:
+                    list.Add('<');
+                    return 1;
+                case Type.Close:
+                    list.Add('>');
+                    return 1;
+                case Type.Slash:
+                    list.Add('/');
+                    return 1;
+                case Type.Text:
+                    return reader.GetText(this, list);
+                case Type.Prologue:
+                    list.Add('?');
+                    return 1;
+                default:
+                    return 0;
             }
         }
 
@@ -52,7 +62,8 @@
             Open,
             Close,
             Slash,
-            Text
+            Text,
+            Prologue
         }
     }
 }

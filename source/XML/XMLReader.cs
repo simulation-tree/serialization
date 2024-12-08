@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Collections;
+using System;
 
 namespace Unmanaged.XML
 {
@@ -42,6 +43,11 @@ namespace Unmanaged.XML
                 if (c == '<')
                 {
                     token = new Token(position, cLength, Token.Type.Open);
+                    return true;
+                }
+                else if (c == '?')
+                {
+                    token = new Token(position, cLength, Token.Type.Prologue);
                     return true;
                 }
                 else if (c == '>')
@@ -152,6 +158,11 @@ namespace Unmanaged.XML
             return reader.ReadObject<XMLNode>();
         }
 
+        /// <summary>
+        /// Copies the underlying text of the given <paramref name="token"/> into
+        /// the destination <paramref name="buffer"/>.
+        /// </summary>
+        /// <returns>Amount of <see cref="char"/> values copied.</returns>
         public unsafe readonly uint GetText(Token token, USpan<char> buffer)
         {
             uint length = reader.PeekUTF8Span(token.position, token.length, buffer);
@@ -165,6 +176,14 @@ namespace Unmanaged.XML
                 return length - 2;
             }
             else return length;
+        }
+
+        public unsafe readonly uint GetText(Token token, List<char> list)
+        {
+            USpan<char> buffer = stackalloc char[(int)token.length];
+            uint length = GetText(token, buffer);
+            list.AddRange(buffer.Slice(0, length));
+            return length;
         }
 
         private static bool IsWhitespace(char c)
