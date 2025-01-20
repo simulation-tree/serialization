@@ -1,6 +1,4 @@
-﻿using Collections;
-
-namespace Unmanaged.XML
+﻿namespace Unmanaged.XML
 {
     public readonly struct Token
     {
@@ -24,32 +22,32 @@ namespace Unmanaged.XML
 
         public unsafe readonly string ToString(XMLReader reader)
         {
-            using List<char> list = new(length);
-            uint copied = ToString(reader, list);
-            return list.AsSpan(0, copied).ToString();
+            using Text buffer = new(0);
+            ToString(reader, buffer);
+            return buffer.ToString();
         }
 
         /// <summary>
-        /// Adds the string representation of this token to the list.
+        /// Adds the string representation of this token to the <paramref name="destination"/>.
         /// </summary>
         /// <returns>Amount of <see cref="char"/> values added.</returns>
-        public readonly uint ToString(XMLReader reader, List<char> list)
+        public readonly uint ToString(XMLReader reader, Text destination)
         {
             switch (type)
             {
                 case Type.Open:
-                    list.Add('<');
+                    destination.Append('<');
                     return 1;
                 case Type.Close:
-                    list.Add('>');
+                    destination.Append('>');
                     return 1;
                 case Type.Slash:
-                    list.Add('/');
+                    destination.Append('/');
                     return 1;
                 case Type.Text:
-                    return reader.GetText(this, list);
+                    return reader.GetText(this, destination);
                 case Type.Prologue:
-                    list.Add('?');
+                    destination.Append('?');
                     return 1;
                 default:
                     return 0;

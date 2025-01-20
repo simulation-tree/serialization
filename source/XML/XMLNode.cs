@@ -5,9 +5,9 @@ namespace Unmanaged.XML
 {
     public struct XMLNode : IDisposable, ISerializable, IEquatable<XMLNode>
     {
-        private Array<char> name;
+        private Text name;
         private List<XMLAttribute> attributes;
-        private List<char> content;
+        private Text content;
         private List<XMLNode> children;
         private bool prologue;
 
@@ -17,16 +17,7 @@ namespace Unmanaged.XML
         public readonly USpan<char> Name
         {
             get => name.AsSpan();
-            set
-            {
-                uint newLength = value.Length;
-                if (newLength > name.Length)
-                {
-                    name.Length = newLength;
-                }
-
-                value.CopyTo(name.AsSpan());
-            }
+            set => name.CopyFrom(value);
         }
 
         /// <summary>
@@ -35,11 +26,7 @@ namespace Unmanaged.XML
         public readonly USpan<char> Content
         {
             get => content.AsSpan();
-            set
-            {
-                content.Clear();
-                content.AddRange(value);
-            }
+            set => content.CopyFrom(value);
         }
 
         public readonly bool IsPrologue => prologue;
@@ -101,7 +88,7 @@ namespace Unmanaged.XML
         {
             name = new(4);
             attributes = new(4);
-            content = new(4);
+            content = new(0);
             children = new(4);
         }
 #endif
@@ -110,11 +97,11 @@ namespace Unmanaged.XML
         {
             this.name = new(name);
             attributes = new(4);
-            content = new(4);
+            content = new(0);
             children = new(4);
         }
 
-        private XMLNode(Array<char> name, List<XMLAttribute> attributes, List<char> content, List<XMLNode> children, bool prologue)
+        private XMLNode(Text name, List<XMLAttribute> attributes, Text content, List<XMLNode> children, bool prologue)
         {
             this.name = name;
             this.attributes = attributes;
@@ -143,25 +130,25 @@ namespace Unmanaged.XML
 
         public readonly override string ToString()
         {
-            List<char> list = new(4);
-            ToString(list, "  ".AsUSpan(), true, true);
-            string str = list.AsSpan().ToString();
-            list.Dispose();
+            Text buffer = new(0);
+            ToString(buffer, "  ".AsUSpan(), true, true);
+            string str = buffer.AsSpan().ToString();
+            buffer.Dispose();
             return str;
         }
 
         readonly void ISerializable.Write(BinaryWriter writer)
         {
-            List<char> list = new(4);
-            ToString(list);
-            writer.WriteSpan(list.AsSpan());
-            list.Dispose();
+            Text buffer = new(0);
+            ToString(buffer);
+            writer.WriteSpan(buffer.AsSpan());
+            buffer.Dispose();
         }
 
         void ISerializable.Read(BinaryReader reader)
         {
             attributes = new(4);
-            content = new(4);
+            content = new(0);
             children = new(4);
 
             XMLReader xmlReader = new(reader);
@@ -249,10 +236,10 @@ namespace Unmanaged.XML
                     }
                     else
                     {
-                        using Array<char> temp = new(token.length);
+                        using Text temp = new(token.length);
                         USpan<char> tempSpan = temp.AsSpan();
                         uint written = reader.PeekUTF8Span(token.position, token.length, tempSpan);
-                        content.AddRange(tempSpan.Slice(0, written));
+                        content.Append(tempSpan.Slice(0, written));
                         reader.Position = token.position + token.length;
                     }
 
@@ -296,47 +283,47 @@ namespace Unmanaged.XML
             }
         }
 
-        public readonly void ToString(List<char> list, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(Text destination, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             for (byte i = 0; i < depth; i++)
             {
                 Indent(indent);
             }
 
-            list.Add('<');
+            destination.Append('<');
             if (prologue)
             {
-                list.Add('?');
+                destination.Append('?');
             }
 
-            list.AddRange(Name);
+            destination.Append(Name);
             for (uint i = 0; i < attributes.Count; i++)
             {
-                list.Add(' ');
+                destination.Append(' ');
                 XMLAttribute attribute = attributes[i];
-                attribute.ToString(list);
+                attribute.ToString(destination);
             }
 
-            if (content.Count > 0 || children.Count > 0)
+            if (content.Length > 0 || children.Count > 0)
             {
                 if (prologue)
                 {
-                    list.Add('?');
+                    destination.Append('?');
                 }
                 else
                 {
                     depth++;
                 }
 
-                list.Add('>');
-                list.AddRange(Content);
+                destination.Append('>');
+                destination.Append(Content);
 
                 if (children.Count > 0)
                 {
                     foreach (XMLNode child in children)
                     {
                         NewLine();
-                        child.ToString(list, indent, cr, lf, depth);
+                        child.ToString(destination, indent, cr, lf, depth);
                     }
 
                     NewLine();
@@ -348,34 +335,34 @@ namespace Unmanaged.XML
 
                 if (!prologue)
                 {
-                    list.Add('<');
-                    list.Add('/');
-                    list.AddRange(Name);
-                    list.Add('>');
+                    destination.Append('<');
+                    destination.Append('/');
+                    destination.Append(Name);
+                    destination.Append('>');
                 }
             }
             else
             {
-                list.Add('/');
-                list.Add('>');
+                destination.Append('/');
+                destination.Append('>');
             }
 
             void NewLine()
             {
                 if (cr)
                 {
-                    list.Add('\r');
+                    destination.Append('\r');
                 }
 
                 if (lf)
                 {
-                    list.Add('\n');
+                    destination.Append('\n');
                 }
             }
 
             void Indent(USpan<char> indent)
             {
-                list.AddRange(indent);
+                destination.Append(indent);
             }
         }
 
@@ -440,6 +427,25 @@ namespace Unmanaged.XML
         public readonly bool TryGetFirst(string name, out XMLNode child)
         {
             return TryGetFirst(name.AsUSpan(), out child);
+        }
+
+        public readonly USpan<char> GetAttribute(string name)
+        {
+            return GetAttribute(name.AsUSpan());
+        }
+
+        public readonly USpan<char> GetAttribute(USpan<char> name)
+        {
+            for (uint i = 0; i < attributes.Count; i++)
+            {
+                XMLAttribute attribute = attributes[i];
+                if (attribute.Name.SequenceEqual(name))
+                {
+                    return attribute.Value;
+                }
+            }
+
+            throw new NullReferenceException($"No attribute {name.ToString()} found");
         }
 
         public readonly bool TryGetAttribute(USpan<char> name, out USpan<char> value)
@@ -590,9 +596,9 @@ namespace Unmanaged.XML
 
         public static XMLNode Create()
         {
-            Array<char> name = new(4);
+            Text name = new(4);
             List<XMLAttribute> attributes = new(4);
-            List<char> content = new(4);
+            Text content = new(0);
             List<XMLNode> children = new(4);
             return new XMLNode(name, attributes, content, children, false);
         }

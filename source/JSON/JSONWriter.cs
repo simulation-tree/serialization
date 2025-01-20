@@ -1,5 +1,4 @@
-﻿using Collections;
-using System;
+﻿using System;
 
 namespace Unmanaged.JSON
 {
@@ -28,12 +27,12 @@ namespace Unmanaged.JSON
         public unsafe override readonly string ToString()
         {
             BinaryReader reader = new(AsSpan());
-            Array<char> tempArray = new(Position * 2);
-            USpan<char> buffer = tempArray.AsSpan();
+            Text tempBuffer = new(Position * 2);
+            USpan<char> buffer = tempBuffer.AsSpan();
             uint read = reader.ReadUTF8Span(buffer);
             reader.Dispose();
             string result = buffer.Slice(0, read).ToString();
-            tempArray.Dispose();
+            tempBuffer.Dispose();
             return result;
         }
 

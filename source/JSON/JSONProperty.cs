@@ -1,11 +1,10 @@
-﻿using Collections;
-using System;
+﻿using System;
 
 namespace Unmanaged.JSON
 {
     public struct JSONProperty : IDisposable
     {
-        private readonly Array<char> name;
+        private readonly Text name;
         private Allocation value;
         private uint length;
         private Type type;
@@ -182,32 +181,32 @@ namespace Unmanaged.JSON
             type = default;
         }
 
-        public unsafe readonly void ToString(List<char> result, bool prefixName, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public unsafe readonly void ToString(Text result, bool prefixName, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             if (prefixName)
             {
-                result.Add('\"');
-                result.AddRange(Name);
-                result.Add('\"');
-                result.Add(':');
+                result.Append('\"');
+                result.Append(Name);
+                result.Append('\"');
+                result.Append(':');
             }
 
             if (type == Type.Text)
             {
-                result.Add('\"');
-                result.AddRange(Text);
-                result.Add('\"');
+                result.Append('\"');
+                result.Append(Text);
+                result.Append('\"');
             }
             else if (type == Type.Number)
             {
                 double number = Number;
                 USpan<char> buffer = stackalloc char[64];
                 uint length = number.ToString(buffer);
-                result.AddRange(buffer.Slice(0, length));
+                result.Append(buffer.Slice(0, length));
             }
             else if (type == Type.Boolean)
             {
-                result.AddRange(Boolean ? "true".AsUSpan() : "false".AsUSpan());
+                result.Append(Boolean ? "true".AsUSpan() : "false".AsUSpan());
             }
             else if (type == Type.Object)
             {
@@ -223,10 +222,10 @@ namespace Unmanaged.JSON
             }
             else if (type == Type.Null)
             {
-                result.Add('n');
-                result.Add('u');
-                result.Add('l');
-                result.Add('l');
+                result.Append('n');
+                result.Append('u');
+                result.Append('l');
+                result.Append('l');
             }
             else
             {
@@ -236,9 +235,9 @@ namespace Unmanaged.JSON
 
         public readonly override string ToString()
         {
-            List<char> buffer = new(4);
+            Text buffer = new(0);
             ToString(buffer, true);
-            string result = buffer.AsSpan().ToString();
+            string result = buffer.ToString();
             buffer.Dispose();
             return result;
         }

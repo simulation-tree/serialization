@@ -1,4 +1,3 @@
-using Collections;
 using System;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -109,7 +108,7 @@ namespace Serialization.Tests
 
             jsonObject["age"].Number++;
 
-            using List<char> buffer = new();
+            using Text buffer = new();
             jsonObject.ToString(buffer, "    ".AsUSpan(), true, true);
             USpan<char> jsonText = buffer.AsSpan();
             Console.WriteLine(jsonText.ToString());
@@ -325,8 +324,8 @@ namespace Serialization.Tests
             public int quantity;
             public bool isRare;
 
-            private Array<char> name;
-            private Array<char> value;
+            private Text name;
+            private Text value;
 
             public readonly USpan<char> Name => name.AsSpan();
             public readonly USpan<char> Value => value.AsSpan();
@@ -368,7 +367,7 @@ namespace Serialization.Tests
                 isRare = reader.ReadBoolean();
             }
 
-            void IJSONSerializable.Write(JSONWriter writer)
+            readonly void IJSONSerializable.Write(JSONWriter writer)
             {
                 writer.WriteProperty(nameof(name), name.AsSpan());
                 writer.WriteProperty(nameof(value), value.AsSpan());

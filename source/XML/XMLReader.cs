@@ -1,5 +1,4 @@
-﻿using Collections;
-using System;
+﻿using System;
 
 namespace Unmanaged.XML
 {
@@ -160,17 +159,17 @@ namespace Unmanaged.XML
 
         /// <summary>
         /// Copies the underlying text of the given <paramref name="token"/> into
-        /// the destination <paramref name="buffer"/>.
+        /// the <paramref name="destination"/>.
         /// </summary>
         /// <returns>Amount of <see cref="char"/> values copied.</returns>
-        public unsafe readonly uint GetText(Token token, USpan<char> buffer)
+        public unsafe readonly uint GetText(Token token, USpan<char> destination)
         {
-            uint length = reader.PeekUTF8Span(token.position, token.length, buffer);
-            if (buffer[0] == '"')
+            uint length = reader.PeekUTF8Span(token.position, token.length, destination);
+            if (destination[0] == '"')
             {
                 for (uint i = 0; i < length - 1; i++)
                 {
-                    buffer[i] = buffer[i + 1];
+                    destination[i] = destination[i + 1];
                 }
 
                 return length - 2;
@@ -178,17 +177,18 @@ namespace Unmanaged.XML
             else return length;
         }
 
-        public unsafe readonly uint GetText(Token token, List<char> list)
+        public unsafe readonly uint GetText(Token token, Text destination)
         {
             USpan<char> buffer = stackalloc char[(int)token.length];
             uint length = GetText(token, buffer);
-            list.AddRange(buffer.Slice(0, length));
+            destination.Append(buffer.Slice(0, length));
             return length;
         }
 
         private static bool IsWhitespace(char c)
         {
-            return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == (char)65279;
+            const char BOM = (char)65279;
+            return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == BOM;
         }
     }
 }

@@ -1,41 +1,22 @@
-﻿using Collections;
-using System;
+﻿using System;
 
 namespace Unmanaged.XML
 {
     public readonly struct XMLAttribute : IDisposable
     {
-        private readonly Array<char> name;
-        private readonly Array<char> value;
+        private readonly Text name;
+        private readonly Text value;
 
         public readonly USpan<char> Name
         {
             get => name.AsSpan();
-            set
-            {
-                uint newLength = value.Length;
-                if (newLength > name.Length)
-                {
-                    name.Length = newLength;
-                }
-
-                value.CopyTo(name.AsSpan());
-            }
+            set => name.CopyFrom(value);
         }
 
         public readonly USpan<char> Value
         {
             get => value.AsSpan();
-            set
-            {
-                uint newLength = value.Length;
-                if (newLength > this.value.Length)
-                {
-                    this.value.Length = newLength;
-                }
-
-                value.CopyTo(this.value.AsSpan());
-            }
+            set => value.CopyFrom(value);
         }
 
         public readonly bool IsDisposed => name.IsDisposed;
@@ -82,22 +63,20 @@ namespace Unmanaged.XML
 
         public unsafe readonly override string ToString()
         {
-            List<char> tempList = new(Name.Length + Value.Length + 3);
-            uint length = ToString(tempList);
-            string result = tempList.AsSpan().Slice(0, length).ToString();
+            Text tempList = new(0);
+            ToString(tempList);
+            string result = tempList.ToString();
             tempList.Dispose();
             return result;
         }
 
-        public readonly uint ToString(List<char> list)
+        public readonly void ToString(Text destination)
         {
-            uint count = list.Count;
-            list.AddRange(Name);
-            list.Add('=');
-            list.Add('"');
-            list.AddRange(Value);
-            list.Add('"');
-            return list.Count - count;
+            destination.Append(Name);
+            destination.Append('=');
+            destination.Append('"');
+            destination.Append(Value);
+            destination.Append('"');
         }
     }
 }
