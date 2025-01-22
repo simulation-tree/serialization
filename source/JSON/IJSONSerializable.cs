@@ -1,4 +1,4 @@
-﻿namespace Unmanaged.JSON
+﻿namespace Serialization.JSON
 {
     public interface IJSONSerializable
     {

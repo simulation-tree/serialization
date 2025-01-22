@@ -1,6 +1,7 @@
 ﻿using System;
+using Unmanaged;
 
-namespace Unmanaged.JSON
+namespace Serialization.JSON
 {
     public struct JSONProperty : IDisposable
     {
@@ -36,7 +37,7 @@ namespace Unmanaged.JSON
             {
                 if (IsText)
                 {
-                    uint newLength = (uint)value.Length * sizeof(char);
+                    uint newLength = value.Length * sizeof(char);
                     if (length < newLength)
                     {
                         Allocation.Resize(ref this.value, newLength);

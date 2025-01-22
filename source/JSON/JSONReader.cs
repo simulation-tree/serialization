@@ -1,6 +1,7 @@
 using System;
+using Unmanaged;
 
-namespace Unmanaged.JSON
+namespace Serialization.JSON
 {
     /// <summary>
     /// A <see cref="BinaryWriter"/> wrapper for reading JSON.

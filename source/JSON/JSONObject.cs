@@ -1,8 +1,9 @@
 ﻿using Collections;
 using System;
 using System.Diagnostics;
+using Unmanaged;
 
-namespace Unmanaged.JSON
+namespace Serialization.JSON
 {
     /// <summary>
     /// Abstract object able to contain any JSON structure.

@@ -1,6 +1,7 @@
 ﻿using System;
+using Unmanaged;
 
-namespace Unmanaged.XML
+namespace Serialization.XML
 {
     public ref struct XMLReader
     {

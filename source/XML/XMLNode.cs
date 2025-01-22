@@ -1,7 +1,8 @@
 ﻿using Collections;
 using System;
+using Unmanaged;
 
-namespace Unmanaged.XML
+namespace Serialization.XML
 {
     public struct XMLNode : IDisposable, ISerializable, IEquatable<XMLNode>
     {

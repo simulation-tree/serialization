@@ -1,4 +1,6 @@
-﻿namespace Unmanaged.JSON
+﻿using Unmanaged;
+
+namespace Serialization.JSON
 {
     public readonly struct Token
     {
@@ -6,7 +8,7 @@
         public readonly uint length;
         public readonly Type type;
 
-        public Token(uint position, uint length, Token.Type type)
+        public Token(uint position, uint length, Type type)
         {
             this.position = position;
             this.length = length;

@@ -1,6 +1,7 @@
 ﻿using System;
+using Unmanaged;
 
-namespace Unmanaged.JSON
+namespace Serialization.JSON
 {
     public struct JSONWriter : IDisposable
     {

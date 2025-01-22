@@ -1,4 +1,6 @@
-﻿namespace Unmanaged.XML
+﻿using Unmanaged;
+
+namespace Serialization.XML
 {
     public readonly struct Token
     {
