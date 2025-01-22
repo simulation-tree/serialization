@@ -109,9 +109,8 @@ namespace Serialization.Tests
             jsonObject["age"].Number++;
 
             using Text buffer = new();
-            jsonObject.ToString(buffer, "    ".AsUSpan(), true, true);
-            USpan<char> jsonText = buffer.AsSpan();
-            Console.WriteLine(jsonText.ToString());
+            jsonObject.ToString(buffer, "    ".AsSpan(), true, true);
+            Console.WriteLine(buffer.ToString());
         }
 
         [Test]
@@ -340,8 +339,8 @@ namespace Serialization.Tests
 
             public DummyJSONObject(string name, string value, int quantity, bool isRare)
             {
-                this.name = new(name.AsUSpan());
-                this.value = new(value.AsUSpan());
+                this.name = new(name);
+                this.value = new(value);
                 this.quantity = quantity;
                 this.isRare = isRare;
             }
