@@ -75,14 +75,14 @@ namespace Unmanaged.JSON
                 else if (c == 't' || c == 'f')
                 {
                     uint peekLength = reader.PeekUTF8Span(position, 5, buffer);
-                    if (buffer.Slice(0, peekLength).SequenceEqual("false".AsUSpan()))
+                    if (buffer.Slice(0, peekLength).SequenceEqual("false".AsSpan()))
                     {
                         token = new Token(position, peekLength, Token.Type.False);
                         return true;
                     }
 
                     USpan<char> smallerBuffer = buffer.Slice(0, peekLength - 1);
-                    if (smallerBuffer.SequenceEqual("true".AsUSpan()))
+                    if (smallerBuffer.SequenceEqual("true".AsSpan()))
                     {
                         token = new Token(position, peekLength - 1, Token.Type.True);
                         return true;
@@ -247,14 +247,14 @@ namespace Unmanaged.JSON
         {
             USpan<char> buffer = stackalloc char[(int)token.length];
             uint length = GetText(token, buffer);
-            return double.Parse(buffer.Slice(0, length).AsSystemSpan());
+            return double.Parse(buffer.Slice(0, length));
         }
 
         public readonly bool GetBoolean(Token token)
         {
             USpan<char> buffer = stackalloc char[(int)token.length];
             uint length = GetText(token, buffer);
-            return buffer.Slice(0, length).SequenceEqual("true".AsUSpan());
+            return buffer.Slice(0, length).SequenceEqual("true".AsSpan());
         }
     }
 }

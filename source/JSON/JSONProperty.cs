@@ -206,7 +206,7 @@ namespace Unmanaged.JSON
             }
             else if (type == Type.Boolean)
             {
-                result.Append(Boolean ? "true".AsUSpan() : "false".AsUSpan());
+                result.Append(Boolean ? "true".AsSpan() : "false".AsSpan());
             }
             else if (type == Type.Object)
             {

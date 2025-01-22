@@ -29,8 +29,8 @@ namespace Unmanaged.XML
 
         public XMLAttribute(string name, string value)
         {
-            this.name = new(name.AsUSpan());
-            this.value = new(value.AsUSpan());
+            this.name = new(name.AsSpan());
+            this.value = new(value.AsSpan());
         }
 
         public XMLAttribute(ref XMLReader reader)

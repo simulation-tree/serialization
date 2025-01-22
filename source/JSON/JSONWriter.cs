@@ -105,19 +105,19 @@ namespace Unmanaged.JSON
             if (value)
             {
                 last = new(writer.Position, sizeof(char) * 4, Token.Type.True);
-                writer.WriteUTF8Text("true".AsUSpan());
+                writer.WriteUTF8Text("true".AsSpan());
             }
             else
             {
                 last = new(writer.Position, sizeof(char) * 5, Token.Type.False);
-                writer.WriteUTF8Text("false".AsUSpan());
+                writer.WriteUTF8Text("false".AsSpan());
             }
         }
 
         public void WriteNull()
         {
             last = new(writer.Position, sizeof(char) * 4, Token.Type.Null);
-            writer.WriteUTF8Text("null".AsUSpan());
+            writer.WriteUTF8Text("null".AsSpan());
         }
 
         public void WriteObject<T>(T obj) where T : unmanaged, IJSONSerializable
@@ -143,7 +143,7 @@ namespace Unmanaged.JSON
 
         public void WriteName(string name)
         {
-            WriteName(name.AsUSpan());
+            WriteName(name.AsSpan());
         }
 
         public void WriteProperty(USpan<char> name, USpan<char> text)
@@ -154,7 +154,7 @@ namespace Unmanaged.JSON
 
         public void WriteProperty(string name, USpan<char> text)
         {
-            WriteProperty(name.AsUSpan(), text);
+            WriteProperty(name.AsSpan(), text);
         }
 
         public void WriteProperty(USpan<char> name, double number)
@@ -165,7 +165,7 @@ namespace Unmanaged.JSON
 
         public void WriteProperty(string name, double number)
         {
-            WriteProperty(name.AsUSpan(), number);
+            WriteProperty(name.AsSpan(), number);
         }
 
         public void WriteProperty(USpan<char> name, bool boolean)
@@ -176,7 +176,7 @@ namespace Unmanaged.JSON
 
         public void WriteProperty(string name, bool boolean)
         {
-            WriteProperty(name.AsUSpan(), boolean);
+            WriteProperty(name.AsSpan(), boolean);
         }
 
         public void WriteProperty<T>(USpan<char> name, T obj) where T : unmanaged, IJSONSerializable
@@ -187,7 +187,7 @@ namespace Unmanaged.JSON
 
         public void WriteProperty<T>(string name, T obj) where T : unmanaged, IJSONSerializable
         {
-            WriteProperty(name.AsUSpan(), obj);
+            WriteProperty(name.AsSpan(), obj);
         }
 
         public static JSONWriter Create()
