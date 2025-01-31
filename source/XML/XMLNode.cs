@@ -239,7 +239,7 @@ namespace Serialization.XML
                     {
                         using Text temp = new(token.length);
                         USpan<char> tempSpan = temp.AsSpan();
-                        uint written = reader.PeekUTF8Span(token.position, token.length, tempSpan);
+                        uint written = reader.PeekUTF8(token.position, token.length, tempSpan);
                         content.Append(tempSpan.Slice(0, written));
                         reader.Position = token.position + token.length;
                     }

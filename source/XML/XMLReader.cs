@@ -165,7 +165,7 @@ namespace Serialization.XML
         /// <returns>Amount of <see cref="char"/> values copied.</returns>
         public unsafe readonly uint GetText(Token token, USpan<char> destination)
         {
-            uint length = reader.PeekUTF8Span(token.position, token.length, destination);
+            uint length = reader.PeekUTF8(token.position, token.length, destination);
             if (destination[0] == '"')
             {
                 for (uint i = 0; i < length - 1; i++)

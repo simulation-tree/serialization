@@ -28,45 +28,45 @@ namespace Serialization.XML
 
         public readonly void WriteStartObject()
         {
-            writer.WriteUTF8Character('<');
+            writer.WriteUTF8('<');
         }
 
         public readonly void WriteEndObject()
         {
-            writer.WriteUTF8Character('>');
+            writer.WriteUTF8('>');
         }
 
         public readonly void WriteSlash()
         {
-            writer.WriteUTF8Character('/');
+            writer.WriteUTF8('/');
         }
 
         public readonly void WriteAttribute(USpan<char> name, USpan<char> value)
         {
-            writer.WriteUTF8Text(name);
-            writer.WriteUTF8Character('=');
-            writer.WriteUTF8Character('"');
-            writer.WriteUTF8Text(value);
-            writer.WriteUTF8Character('"');
+            writer.WriteUTF8(name);
+            writer.WriteUTF8('=');
+            writer.WriteUTF8('"');
+            writer.WriteUTF8(value);
+            writer.WriteUTF8('"');
         }
 
         public readonly void WriteAttribute(string name, string value)
         {
-            writer.WriteUTF8Text(name);
-            writer.WriteUTF8Character('=');
-            writer.WriteUTF8Character('"');
-            writer.WriteUTF8Text(value);
-            writer.WriteUTF8Character('"');
+            writer.WriteUTF8(name);
+            writer.WriteUTF8('=');
+            writer.WriteUTF8('"');
+            writer.WriteUTF8(value);
+            writer.WriteUTF8('"');
         }
 
         public readonly void WriteText(USpan<char> value)
         {
-            writer.WriteUTF8Text(value);
+            writer.WriteUTF8(value);
         }
 
         public readonly void WriteText(string value)
         {
-            writer.WriteUTF8Text(value);
+            writer.WriteUTF8(value);
         }
 
         public static XMLWriter Create()

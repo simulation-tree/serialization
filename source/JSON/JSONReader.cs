@@ -75,7 +75,7 @@ namespace Serialization.JSON
                 }
                 else if (c == 't' || c == 'f')
                 {
-                    uint peekLength = reader.PeekUTF8Span(position, 5, buffer);
+                    uint peekLength = reader.PeekUTF8(position, 5, buffer);
                     if (buffer.Slice(0, peekLength).SequenceEqual("false".AsSpan()))
                     {
                         token = new Token(position, peekLength, Token.Type.False);
@@ -231,7 +231,7 @@ namespace Serialization.JSON
 
         public unsafe readonly uint GetText(Token token, USpan<char> buffer)
         {
-            uint length = reader.PeekUTF8Span(token.position, token.length, buffer);
+            uint length = reader.PeekUTF8(token.position, token.length, buffer);
             if (buffer[0] == '"')
             {
                 for (uint i = 0; i < length - 1; i++)

@@ -202,7 +202,7 @@ namespace Serialization.JSON
         {
             Text list = new(0);
             ToString(list);
-            writer.WriteUTF8Text(list.AsSpan());
+            writer.WriteUTF8(list.AsSpan());
             list.Dispose();
         }
 

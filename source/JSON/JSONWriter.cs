@@ -30,7 +30,7 @@ namespace Serialization.JSON
             BinaryReader reader = new(AsSpan());
             Text tempBuffer = new(Position * 2);
             USpan<char> buffer = tempBuffer.AsSpan();
-            uint read = reader.ReadUTF8Span(buffer);
+            uint read = reader.ReadUTF8(buffer);
             reader.Dispose();
             string result = buffer.Slice(0, read).ToString();
             tempBuffer.Dispose();
@@ -39,7 +39,7 @@ namespace Serialization.JSON
 
         public readonly USpan<byte> AsSpan()
         {
-            return writer.GetBytes();
+            return writer.AsSpan();
         }
 
         public readonly void Dispose()
@@ -50,33 +50,33 @@ namespace Serialization.JSON
         public void WriteStartObject()
         {
             last = new(writer.Position, sizeof(char), Token.Type.StartObject);
-            writer.WriteUTF8Character('{');
+            writer.WriteUTF8('{');
         }
 
         public void WriteEndObject()
         {
             last = new(writer.Position, sizeof(char), Token.Type.EndObject);
-            writer.WriteUTF8Character('}');
+            writer.WriteUTF8('}');
         }
 
         public void WriteStartArray()
         {
             last = new(writer.Position, sizeof(char), Token.Type.StartArray);
-            writer.WriteUTF8Character('[');
+            writer.WriteUTF8('[');
         }
 
         public void WriteEndArray()
         {
             last = new(writer.Position, sizeof(char), Token.Type.EndArray);
-            writer.WriteUTF8Character(']');
+            writer.WriteUTF8(']');
         }
 
         private void WriteText(USpan<char> value)
         {
             last = new(writer.Position, sizeof(char) * (2 + value.Length), Token.Type.Text);
-            writer.WriteUTF8Character('"');
-            writer.WriteUTF8Text(value);
-            writer.WriteUTF8Character('"');
+            writer.WriteUTF8('"');
+            writer.WriteUTF8(value);
+            writer.WriteUTF8('"');
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace Serialization.JSON
         {
             if (last.type != Token.Type.StartObject && last.type != Token.Type.StartArray && last.type != Token.Type.Unknown)
             {
-                writer.WriteUTF8Character(',');
+                writer.WriteUTF8(',');
             }
 
             WriteText(value);
@@ -98,7 +98,7 @@ namespace Serialization.JSON
             uint length = number.ToString(buffer);
 
             last = new(writer.Position, sizeof(char) * length, Token.Type.Number);
-            writer.WriteUTF8Text(buffer.Slice(0, length));
+            writer.WriteUTF8(buffer.Slice(0, length));
         }
 
         public void WriteBoolean(bool value)
@@ -106,19 +106,19 @@ namespace Serialization.JSON
             if (value)
             {
                 last = new(writer.Position, sizeof(char) * 4, Token.Type.True);
-                writer.WriteUTF8Text("true".AsSpan());
+                writer.WriteUTF8("true".AsSpan());
             }
             else
             {
                 last = new(writer.Position, sizeof(char) * 5, Token.Type.False);
-                writer.WriteUTF8Text("false".AsSpan());
+                writer.WriteUTF8("false".AsSpan());
             }
         }
 
         public void WriteNull()
         {
             last = new(writer.Position, sizeof(char) * 4, Token.Type.Null);
-            writer.WriteUTF8Text("null".AsSpan());
+            writer.WriteUTF8("null".AsSpan());
         }
 
         public void WriteObject<T>(T obj) where T : unmanaged, IJSONSerializable
@@ -135,11 +135,11 @@ namespace Serialization.JSON
         {
             if (last.type != Token.Type.StartObject && last.type != Token.Type.StartArray && last.type != Token.Type.Unknown)
             {
-                writer.WriteUTF8Character(',');
+                writer.WriteUTF8(',');
             }
 
             WriteText(name);
-            writer.WriteUTF8Character(':');
+            writer.WriteUTF8(':');
         }
 
         public void WriteName(string name)
