@@ -559,9 +559,12 @@ namespace Serialization.JSON
             public static Implementation* Allocate()
             {
                 List<JSONProperty> properties = new(4);
-                Implementation* obj = Allocations.Allocate<Implementation>();
-                obj[0] = new(properties);
-                return obj;
+                ref Implementation value = ref Allocations.Allocate<Implementation>();
+                value = new(properties);
+                fixed (Implementation* pointer = &value)
+                {
+                    return pointer;
+                }
             }
 
             public static void Free(ref Implementation* obj)
