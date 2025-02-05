@@ -30,8 +30,8 @@ namespace Serialization.XML
 
         public XMLAttribute(string name, string value)
         {
-            this.name = new(name.AsSpan());
-            this.value = new(value.AsSpan());
+            this.name = new(name);
+            this.value = new(value);
         }
 
         public XMLAttribute(ref XMLReader reader)
@@ -39,7 +39,7 @@ namespace Serialization.XML
             Token nameToken = reader.ReadToken();
             if (nameToken.type != Token.Type.Text)
             {
-                throw new Exception();
+                throw new();
             }
 
             USpan<char> buffer = stackalloc char[256];
@@ -49,7 +49,7 @@ namespace Serialization.XML
             Token valueToken = reader.ReadToken();
             if (valueToken.type != Token.Type.Text)
             {
-                throw new Exception();
+                throw new();
             }
 
             length = reader.GetText(valueToken, buffer);
