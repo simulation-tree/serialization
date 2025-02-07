@@ -286,7 +286,7 @@ namespace Serialization.XML
 
         public readonly void ToString(Text destination, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
-            for (byte i = 0; i < depth; i++)
+            for (int i = 0; i < depth; i++)
             {
                 Indent(indent);
             }
@@ -328,7 +328,7 @@ namespace Serialization.XML
                     }
 
                     NewLine();
-                    for (byte i = 0; i < depth - 1; i++)
+                    for (int i = 0; i < depth - 1; i++)
                     {
                         Indent(indent);
                     }

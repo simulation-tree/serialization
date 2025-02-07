@@ -106,7 +106,7 @@ namespace Serialization.JSON
             if (value->properties.Count > 0)
             {
                 NewLine();
-                for (byte i = 0; i <= depth; i++)
+                for (int i = 0; i <= depth; i++)
                 {
                     Indent(indent);
                 }
@@ -127,14 +127,14 @@ namespace Serialization.JSON
 
                     result.Append(',');
                     NewLine();
-                    for (byte i = 0; i <= depth; i++)
+                    for (int i = 0; i <= depth; i++)
                     {
                         Indent(indent);
                     }
                 }
 
                 NewLine();
-                for (byte i = 0; i < depth; i++)
+                for (int i = 0; i < depth; i++)
                 {
                     Indent(indent);
                 }
