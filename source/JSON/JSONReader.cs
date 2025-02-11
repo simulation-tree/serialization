@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Serialization.JSON
@@ -6,6 +7,7 @@ namespace Serialization.JSON
     /// <summary>
     /// A <see cref="BinaryWriter"/> wrapper for reading JSON.
     /// </summary>
+    [SkipLocalsInit]
     public struct JSONReader
     {
         private BinaryReader reader;

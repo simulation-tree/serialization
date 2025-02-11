@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Serialization.XML
@@ -163,7 +164,7 @@ namespace Serialization.XML
         /// the <paramref name="destination"/>.
         /// </summary>
         /// <returns>Amount of <see cref="char"/> values copied.</returns>
-        public unsafe readonly uint GetText(Token token, USpan<char> destination)
+        public readonly uint GetText(Token token, USpan<char> destination)
         {
             uint length = reader.PeekUTF8(token.position, token.length, destination);
             if (destination[0] == '"')
@@ -178,7 +179,8 @@ namespace Serialization.XML
             else return length;
         }
 
-        public unsafe readonly uint GetText(Token token, Text destination)
+        [SkipLocalsInit]
+        public readonly uint GetText(Token token, Text destination)
         {
             USpan<char> buffer = stackalloc char[(int)token.length];
             uint length = GetText(token, buffer);

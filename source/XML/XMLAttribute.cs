@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Serialization.XML
@@ -34,6 +35,7 @@ namespace Serialization.XML
             this.value = new(value);
         }
 
+        [SkipLocalsInit]
         public XMLAttribute(ref XMLReader reader)
         {
             Token nameToken = reader.ReadToken();

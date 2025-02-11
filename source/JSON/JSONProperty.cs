@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Serialization.JSON
 {
+    [SkipLocalsInit]
     public struct JSONProperty : IDisposable
     {
         private readonly Text name;

@@ -1,10 +1,12 @@
 ﻿using Collections;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Serialization.JSON
 {
+    [SkipLocalsInit]
     public unsafe struct JSONArray : IDisposable, ISerializable
     {
         private Implementation* value;

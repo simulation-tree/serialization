@@ -1,6 +1,7 @@
 ﻿using Collections;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Serialization.JSON
@@ -8,6 +9,7 @@ namespace Serialization.JSON
     /// <summary>
     /// Abstract object able to contain any JSON structure.
     /// </summary>
+    [SkipLocalsInit]
     public unsafe struct JSONObject : IDisposable, ISerializable
     {
         private Implementation* value;

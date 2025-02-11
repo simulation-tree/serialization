@@ -1,5 +1,6 @@
 ﻿using Collections;
 using System;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Serialization.XML
@@ -146,6 +147,7 @@ namespace Serialization.XML
             buffer.Dispose();
         }
 
+        [SkipLocalsInit]
         void ISerializable.Read(BinaryReader reader)
         {
             attributes = new(4);
