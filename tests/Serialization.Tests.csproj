@@ -36,7 +36,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\unmanaged\tests\Unmanaged.Tests.csproj" />
 		<ProjectReference Include="..\source\Serialization.csproj" />
-		<ProjectReference Include="..\..\unmanaged\source\Unmanaged.csproj" />
+		<ProjectReference Include="..\..\unmanaged\core\Unmanaged.Core.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
