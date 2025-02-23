@@ -93,7 +93,7 @@ namespace Serialization.JSON
             T value = default;
             using Text result = new(0);
             ToString(result);
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(result.AsSpan());
+            using ByteReader reader = ByteReader.CreateFromUTF8(result.AsSpan());
             JSONReader jsonReader = new(reader);
             jsonReader.ReadToken(out _);
             value.Read(jsonReader);
@@ -440,7 +440,7 @@ namespace Serialization.JSON
             return TryGetArray(name.AsSpan(), out array);
         }
 
-        readonly void ISerializable.Write(BinaryWriter writer)
+        readonly void ISerializable.Write(ByteWriter writer)
         {
             Text list = new(0);
             ToString(list);
@@ -448,7 +448,7 @@ namespace Serialization.JSON
             list.Dispose();
         }
 
-        void ISerializable.Read(BinaryReader reader)
+        void ISerializable.Read(ByteReader reader)
         {
             value = Implementation.Allocate();
             JSONReader jsonReader = new(reader);
@@ -462,7 +462,7 @@ namespace Serialization.JSON
 
             ParseObject(jsonReader, reader, this);
 
-            static void ParseObject(JSONReader jsonReader, BinaryReader reader, JSONObject jsonObject)
+            static void ParseObject(JSONReader jsonReader, ByteReader reader, JSONObject jsonObject)
             {
                 USpan<char> buffer = stackalloc char[256];
                 while (jsonReader.ReadToken(out Token token))

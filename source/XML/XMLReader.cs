@@ -6,7 +6,7 @@ namespace Serialization.XML
 {
     public ref struct XMLReader
     {
-        private BinaryReader reader;
+        private ByteReader reader;
         private bool inside;
 
         public readonly ref uint Position => ref reader.Position;
@@ -22,9 +22,9 @@ namespace Serialization.XML
 #endif
 
         /// <summary>
-        /// Creates a new XML format reader on top of the given <see cref="BinaryReader"/>.
+        /// Creates a new XML format reader on top of the given <see cref="ByteReader"/>.
         /// </summary>
-        public XMLReader(BinaryReader reader)
+        public XMLReader(ByteReader reader)
         {
             this.reader = reader;
             inside = false;

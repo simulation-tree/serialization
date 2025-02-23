@@ -5,12 +5,12 @@ using Unmanaged;
 namespace Serialization.JSON
 {
     /// <summary>
-    /// A <see cref="BinaryWriter"/> wrapper for reading JSON.
+    /// A <see cref="ByteWriter"/> wrapper for reading JSON.
     /// </summary>
     [SkipLocalsInit]
     public struct JSONReader
     {
-        private BinaryReader reader;
+        private ByteReader reader;
 
         public readonly bool IsDisposed => reader.IsDisposed;
 
@@ -25,7 +25,7 @@ namespace Serialization.JSON
         /// <summary>
         /// Creates a new wrapper around the given binary reader.
         /// </summary>
-        public JSONReader(BinaryReader reader)
+        public JSONReader(ByteReader reader)
         {
             this.reader = reader;
         }

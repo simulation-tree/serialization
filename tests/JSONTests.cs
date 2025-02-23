@@ -29,7 +29,7 @@ namespace Serialization.Tests
             };
 
             string jsonString = json.ToString();
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(jsonString);
+            using ByteReader reader = ByteReader.CreateFromUTF8(jsonString);
             JSONObject obj = reader.ReadObject<JSONObject>();
             Assert.That(obj.GetText("name").ToString(), Is.EqualTo("John Doe"));
             Assert.That(obj.GetNumber("age"), Is.EqualTo(42));
@@ -123,7 +123,7 @@ namespace Serialization.Tests
             settings.Add("another", "aA");
 
             System.Collections.Generic.List<(string name, object? value)> settingsList = new();
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(settings.ToString());
+            using ByteReader reader = ByteReader.CreateFromUTF8(settings.ToString());
             JSONReader jsonReader = new(reader);
             jsonReader.ReadToken(); //{
             USpan<char> buffer = stackalloc char[32];
@@ -193,7 +193,7 @@ namespace Serialization.Tests
 
             json.Add("inventory", inventory);
             string jsonString = json.ToJsonString(new JsonSerializerOptions() { WriteIndented = false });
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(jsonString);
+            using ByteReader reader = ByteReader.CreateFromUTF8(jsonString);
             JSONObject obj = reader.ReadObject<JSONObject>();
             JSONArray array = obj.GetArray("inventory");
             Assert.That(array.Count, Is.EqualTo(32));
@@ -214,7 +214,7 @@ namespace Serialization.Tests
             item.Add("isRare", rare);
 
             string str = item.ToString();
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(str);
+            using ByteReader reader = ByteReader.CreateFromUTF8(str);
             JSONReader jsonReader = new(reader);
             using DummyJSONObject dummy = jsonReader.ReadObject<DummyJSONObject>();
             Assert.That(dummy.Name.ToString(), Is.EqualTo("Item 25"));
@@ -237,7 +237,7 @@ namespace Serialization.Tests
         [Test]
         public void TryReadXMLAsJSON()
         {
-            BinaryReader reader = BinaryReader.CreateFromUTF8("<Project Sdk=\"Microshaft.Sdk.blabla\"><Some>5</Some></Project>");
+            ByteReader reader = ByteReader.CreateFromUTF8("<Project Sdk=\"Microshaft.Sdk.blabla\"><Some>5</Some></Project>");
             JSONReader jsonReader = new(reader);
             while (true)
             {
@@ -269,7 +269,7 @@ namespace Serialization.Tests
             }
 
             inventory.Add("inventory", array);
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(inventory.ToString());
+            using ByteReader reader = ByteReader.CreateFromUTF8(inventory.ToString());
             using JSONObject obj = reader.ReadObject<JSONObject>();
             JSONArray items = obj.GetArray("inventory");
             Assert.That(items.Count, Is.EqualTo(32));
@@ -301,7 +301,7 @@ namespace Serialization.Tests
 
             json.Add("inventory", inventory);
 
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(json.ToString());
+            using ByteReader reader = ByteReader.CreateFromUTF8(json.ToString());
             using JSONObject jsonObject = reader.ReadObject<JSONObject>();
             JSONArray array = jsonObject.GetArray("inventory");
             Assert.That(array.Count, Is.EqualTo(32));

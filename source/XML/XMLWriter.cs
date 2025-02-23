@@ -5,7 +5,7 @@ namespace Serialization.XML
 {
     public readonly struct XMLWriter : IDisposable
     {
-        private readonly BinaryWriter writer;
+        private readonly ByteWriter writer;
 
         public readonly bool IsDisposed => writer.IsDisposed;
 
@@ -16,7 +16,7 @@ namespace Serialization.XML
         }
 #endif
 
-        private XMLWriter(BinaryWriter writer)
+        private XMLWriter(ByteWriter writer)
         {
             this.writer = writer;
         }

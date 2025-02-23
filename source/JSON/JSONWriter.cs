@@ -7,7 +7,7 @@ namespace Serialization.JSON
     [SkipLocalsInit]
     public struct JSONWriter : IDisposable
     {
-        private readonly BinaryWriter writer;
+        private readonly ByteWriter writer;
         private Token last;
 
         public readonly bool IsDisposed => writer.IsDisposed;
@@ -21,7 +21,7 @@ namespace Serialization.JSON
         }
 #endif
 
-        public JSONWriter(BinaryWriter writer)
+        public JSONWriter(ByteWriter writer)
         {
             this.writer = writer;
             last = default;
@@ -29,7 +29,7 @@ namespace Serialization.JSON
 
         public unsafe override readonly string ToString()
         {
-            BinaryReader reader = new(AsSpan());
+            ByteReader reader = new(AsSpan());
             Text tempBuffer = new(Position * 2);
             USpan<char> buffer = tempBuffer.AsSpan();
             uint read = reader.ReadUTF8(buffer);
@@ -195,7 +195,7 @@ namespace Serialization.JSON
 
         public static JSONWriter Create()
         {
-            return new(new BinaryWriter(4));
+            return new(new ByteWriter(4));
         }
     }
 }

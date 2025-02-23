@@ -20,7 +20,7 @@ namespace Serialization.Tests
         [Test]
         public void ReadXMLTokens()
         {
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(XMLDummy);
+            using ByteReader reader = ByteReader.CreateFromUTF8(XMLDummy);
             XMLReader xmlReader = new(reader);
             List<string> tokens = new();
             while (xmlReader.ReadToken(out Token token))
@@ -39,7 +39,7 @@ namespace Serialization.Tests
         [Test]
         public void DeserializeXML()
         {
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(XMLDummy);
+            using ByteReader reader = ByteReader.CreateFromUTF8(XMLDummy);
             XMLReader xmlReader = new(reader);
             List<string> tokens = new();
             while (xmlReader.ReadToken(out Token token))
@@ -61,7 +61,7 @@ namespace Serialization.Tests
         [Test]
         public void TryReadJSONAsXML()
         {
-            using BinaryReader reader = BinaryReader.CreateFromUTF8("{\"some\":true,\"kind\":7,\"of\":\"json\"}");
+            using ByteReader reader = ByteReader.CreateFromUTF8("{\"some\":true,\"kind\":7,\"of\":\"json\"}");
             XMLReader xmlReader = new(reader);
             while (xmlReader.ReadToken(out Token token))
             {
@@ -72,7 +72,7 @@ namespace Serialization.Tests
         [Test]
         public void ModifyXML()
         {
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(XMLDummy);
+            using ByteReader reader = ByteReader.CreateFromUTF8(XMLDummy);
             using XMLNode projectXml = reader.ReadObject<XMLNode>();
             projectXml.TryGetFirst("PropertyGroup", out XMLNode propertyGroup);
             propertyGroup.TryGetFirst("TargetFramework", out XMLNode tfm);
@@ -84,7 +84,7 @@ namespace Serialization.Tests
         [Test]
         public void DeserializeFromBinary()
         {
-            using BinaryReader reader = BinaryReader.CreateFromUTF8(XMLDummy);
+            using ByteReader reader = ByteReader.CreateFromUTF8(XMLDummy);
             USpan<byte> byteStream = reader.GetBytes();
             using XMLNode projectXml = reader.ReadObject<XMLNode>();
             string str = projectXml.ToString();
@@ -95,7 +95,7 @@ namespace Serialization.Tests
         public void ReadEmptyNodes()
         {
             using System.IO.Stream xmlFileStream = GetType().Assembly.GetManifestResourceStream("Serialization.Tests.XMLFile1.xml") ?? throw new Exception();
-            using BinaryReader reader = new(xmlFileStream);
+            using ByteReader reader = new(xmlFileStream);
             XMLReader xmlReader = new(reader);
             using XMLNode node = xmlReader.ReadNode();
             Assert.That(node.Name.ToString(), Is.EqualTo("None"));
@@ -109,7 +109,7 @@ namespace Serialization.Tests
         public void ReadWithPrologue()
         {
             using System.IO.Stream xmlFileStream = GetType().Assembly.GetManifestResourceStream("Serialization.Tests.XMLFile2.xml") ?? throw new Exception();
-            using BinaryReader reader = new(xmlFileStream);
+            using ByteReader reader = new(xmlFileStream);
             XMLReader xmlReader = new(reader);
             using XMLNode node = xmlReader.ReadNode();
             Assert.That(node.IsPrologue, Is.True);

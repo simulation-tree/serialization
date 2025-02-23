@@ -200,7 +200,7 @@ namespace Serialization.JSON
             value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length)));
         }
 
-        readonly void ISerializable.Write(BinaryWriter writer)
+        readonly void ISerializable.Write(ByteWriter writer)
         {
             Text list = new(0);
             ToString(list);
@@ -208,11 +208,11 @@ namespace Serialization.JSON
             list.Dispose();
         }
 
-        void ISerializable.Read(BinaryReader reader)
+        void ISerializable.Read(ByteReader reader)
         {
             value = Implementation.Allocate();
             ParseArray(new(reader), reader, this);
-            static void ParseArray(JSONReader jsonReader, BinaryReader reader, JSONArray jsonArray)
+            static void ParseArray(JSONReader jsonReader, ByteReader reader, JSONArray jsonArray)
             {
                 while (jsonReader.ReadToken(out Token token))
                 {

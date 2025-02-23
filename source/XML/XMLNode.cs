@@ -139,7 +139,7 @@ namespace Serialization.XML
             return str;
         }
 
-        readonly void ISerializable.Write(BinaryWriter writer)
+        readonly void ISerializable.Write(ByteWriter writer)
         {
             Text buffer = new(0);
             ToString(buffer);
@@ -148,7 +148,7 @@ namespace Serialization.XML
         }
 
         [SkipLocalsInit]
-        void ISerializable.Read(BinaryReader reader)
+        void ISerializable.Read(ByteReader reader)
         {
             attributes = new(4);
             content = new(0);
