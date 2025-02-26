@@ -28,7 +28,7 @@ namespace Serialization.JSON
             {
                 if (IsText)
                 {
-                    return value.AsSpan<char>(0, length / sizeof(char));
+                    return value.GetSpan<char>(length / sizeof(char));
                 }
                 else
                 {
@@ -115,7 +115,7 @@ namespace Serialization.JSON
         {
             this.name = new(name);
             length = text.Length * sizeof(char);
-            value = new(length);
+            value = Allocation.Create(length);
             value.Write(0, text);
             type = Type.Text;
         }
@@ -124,7 +124,7 @@ namespace Serialization.JSON
         {
             this.name = new(name);
             length = sizeof(double);
-            value = new(length);
+            value = Allocation.Create(length);
             value.Write(0, number);
             type = Type.Number;
         }
@@ -133,7 +133,7 @@ namespace Serialization.JSON
         {
             this.name = new(name);
             length = sizeof(bool);
-            value = new(length);
+            value = Allocation.Create(length);
             value.Write(0, boolean);
             type = Type.Boolean;
         }
@@ -142,7 +142,7 @@ namespace Serialization.JSON
         {
             this.name = new(name);
             length = (uint)sizeof(nint);
-            value = new(length);
+            value = Allocation.Create(length);
             value.Write(0, obj.Address);
             type = Type.Object;
         }
@@ -151,7 +151,7 @@ namespace Serialization.JSON
         {
             this.name = new(name);
             length = (uint)sizeof(nint);
-            value = new(length);
+            value = Allocation.Create(length);
             value.Write(0, array.Address);
             type = Type.Array;
         }
