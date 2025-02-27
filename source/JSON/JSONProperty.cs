@@ -22,13 +22,13 @@ namespace Serialization.JSON
         public readonly USpan<char> Name => name.AsSpan();
         public readonly bool IsDisposed => type == default || name.IsDisposed;
 
-        public USpan<char> Text
+        public unsafe USpan<char> Text
         {
             readonly get
             {
                 if (IsText)
                 {
-                    return value.GetSpan<char>(length / sizeof(char));
+                    return new USpan<char>(value.Pointer, length / sizeof(char));
                 }
                 else
                 {
