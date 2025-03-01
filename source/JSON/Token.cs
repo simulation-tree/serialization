@@ -24,7 +24,7 @@ namespace Serialization.JSON
         {
             USpan<char> buffer = stackalloc char[(int)length];
             uint read = reader.GetText(this, buffer);
-            return buffer.Slice(0, read).ToString();
+            return buffer.GetSpan(read).ToString();
         }
 
         public enum Type : byte

@@ -78,13 +78,13 @@ namespace Serialization.JSON
                 else if (c == 't' || c == 'f')
                 {
                     uint peekLength = reader.PeekUTF8(position, 5, buffer);
-                    if (buffer.Slice(0, peekLength).SequenceEqual("false".AsSpan()))
+                    if (buffer.GetSpan(peekLength).SequenceEqual("false".AsSpan()))
                     {
                         token = new Token(position, peekLength, Token.Type.False);
                         return true;
                     }
 
-                    USpan<char> smallerBuffer = buffer.Slice(0, peekLength - 1);
+                    USpan<char> smallerBuffer = buffer.GetSpan(peekLength - 1);
                     if (smallerBuffer.SequenceEqual("true".AsSpan()))
                     {
                         token = new Token(position, peekLength - 1, Token.Type.True);
@@ -250,14 +250,14 @@ namespace Serialization.JSON
         {
             USpan<char> buffer = stackalloc char[(int)token.length];
             uint length = GetText(token, buffer);
-            return double.Parse(buffer.Slice(0, length));
+            return double.Parse(buffer.GetSpan(length));
         }
 
         public readonly bool GetBoolean(Token token)
         {
             USpan<char> buffer = stackalloc char[(int)token.length];
             uint length = GetText(token, buffer);
-            return buffer.Slice(0, length).SequenceEqual("true".AsSpan());
+            return buffer.GetSpan(length).SequenceEqual("true".AsSpan());
         }
     }
 }

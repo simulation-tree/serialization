@@ -184,7 +184,7 @@ namespace Serialization.XML
         {
             USpan<char> buffer = stackalloc char[(int)token.length];
             uint length = GetText(token, buffer);
-            destination.Append(buffer.Slice(0, length));
+            destination.Append(buffer.GetSpan(length));
             return length;
         }
 

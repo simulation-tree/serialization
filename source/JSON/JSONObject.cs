@@ -472,7 +472,7 @@ namespace Serialization.JSON
                         uint length = jsonReader.GetText(token, buffer);
                         if (jsonReader.ReadToken(out Token nextToken))
                         {
-                            USpan<char> nameSpan = buffer.Slice(0, length);
+                            USpan<char> nameSpan = buffer.GetSpan(length);
                             if (nameSpan.Length > 0 && nameSpan[0] == '"')
                             {
                                 nameSpan = nameSpan.Slice(1, nameSpan.Length - 2);
@@ -499,7 +499,7 @@ namespace Serialization.JSON
                                 Text textBuffer = new(nextToken.length * 4);
                                 USpan<char> bufferSpan = textBuffer.AsSpan();
                                 uint textLength = jsonReader.GetText(nextToken, bufferSpan);
-                                USpan<char> text = bufferSpan.Slice(0, textLength);
+                                USpan<char> text = bufferSpan.GetSpan(textLength);
                                 if (text.Length > 0 && text[0] == '"')
                                 {
                                     text = text.Slice(1, text.Length - 2);

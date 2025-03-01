@@ -142,7 +142,7 @@ namespace Serialization.JSON
             USpan<char> nameBuffer = stackalloc char[16];
             uint index = value->elements.Count;
             uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), text));
+            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length), text));
         }
 
         public readonly void Add(string text)
@@ -157,7 +157,7 @@ namespace Serialization.JSON
             USpan<char> nameBuffer = stackalloc char[16];
             uint index = value->elements.Count;
             uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), number));
+            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length), number));
         }
 
         public readonly void Add(bool boolean)
@@ -167,7 +167,7 @@ namespace Serialization.JSON
             USpan<char> nameBuffer = stackalloc char[16];
             uint index = value->elements.Count;
             uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), boolean));
+            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length), boolean));
         }
 
         public readonly void Add(JSONObject jsonObject)
@@ -177,7 +177,7 @@ namespace Serialization.JSON
             USpan<char> nameBuffer = stackalloc char[16];
             uint index = value->elements.Count;
             uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), jsonObject));
+            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length), jsonObject));
         }
 
         public readonly void Add(JSONArray jsonArray)
@@ -187,7 +187,7 @@ namespace Serialization.JSON
             USpan<char> nameBuffer = stackalloc char[16];
             uint index = value->elements.Count;
             uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), jsonArray));
+            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length), jsonArray));
         }
 
         public readonly void AddNull()
@@ -197,7 +197,7 @@ namespace Serialization.JSON
             USpan<char> nameBuffer = stackalloc char[16];
             uint index = value->elements.Count;
             uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length)));
+            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length)));
         }
 
         readonly void ISerializable.Write(ByteWriter writer)
@@ -237,7 +237,7 @@ namespace Serialization.JSON
                         Text textBuffer = new(token.length * 4);
                         USpan<char> bufferSpan = textBuffer.AsSpan();
                         uint textLength = jsonReader.GetText(token, bufferSpan);
-                        USpan<char> text = bufferSpan.Slice(0, textLength);
+                        USpan<char> text = bufferSpan.GetSpan(textLength);
                         if (text.Length > 0 && text[0] == '"')
                         {
                             text = text.Slice(1, text.Length - 2);

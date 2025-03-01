@@ -34,7 +34,7 @@ namespace Serialization.JSON
             USpan<char> buffer = tempBuffer.AsSpan();
             uint read = reader.ReadUTF8(buffer);
             reader.Dispose();
-            string result = buffer.Slice(0, read).ToString();
+            string result = buffer.GetSpan(read).ToString();
             tempBuffer.Dispose();
             return result;
         }
@@ -100,7 +100,7 @@ namespace Serialization.JSON
             uint length = number.ToString(buffer);
 
             last = new(writer.Position, sizeof(char) * length, Token.Type.Number);
-            writer.WriteUTF8(buffer.Slice(0, length));
+            writer.WriteUTF8(buffer.GetSpan(length));
         }
 
         public void WriteBoolean(bool value)

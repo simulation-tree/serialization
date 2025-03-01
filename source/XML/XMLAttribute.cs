@@ -46,7 +46,7 @@ namespace Serialization.XML
 
             USpan<char> buffer = stackalloc char[256];
             uint length = reader.GetText(nameToken, buffer);
-            name = new(buffer.Slice(0, length));
+            name = new(buffer.GetSpan(length));
 
             Token valueToken = reader.ReadToken();
             if (valueToken.type != Token.Type.Text)
@@ -55,7 +55,7 @@ namespace Serialization.XML
             }
 
             length = reader.GetText(valueToken, buffer);
-            value = new(buffer.Slice(0, length));
+            value = new(buffer.GetSpan(length));
         }
 
         public readonly void Dispose()

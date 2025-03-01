@@ -169,7 +169,7 @@ namespace Serialization.XML
             USpan<char> nameBuffer = stackalloc char[256];
             USpan<char> valueBuffer = stackalloc char[256];
             uint length = xmlReader.GetText(token, nameBuffer);
-            name = new(nameBuffer.Slice(0, length));
+            name = new(nameBuffer.GetSpan(length));
 
             //read attributes inside first node
             while (xmlReader.ReadToken(out token))
@@ -197,7 +197,7 @@ namespace Serialization.XML
                     length = xmlReader.GetText(token, nameBuffer);
                     token = xmlReader.ReadToken();
                     uint valueLength = xmlReader.GetText(token, valueBuffer);
-                    XMLAttribute attribute = new(nameBuffer.Slice(0, length), valueBuffer.Slice(0, valueLength));
+                    XMLAttribute attribute = new(nameBuffer.GetSpan(length), valueBuffer.GetSpan(valueLength));
                     attributes.Add(attribute);
                 }
             }
@@ -243,7 +243,7 @@ namespace Serialization.XML
                         using Text temp = new(token.length);
                         USpan<char> tempSpan = temp.AsSpan();
                         uint written = reader.PeekUTF8(token.position, token.length, tempSpan);
-                        content.Append(tempSpan.Slice(0, written));
+                        content.Append(tempSpan.GetSpan(written));
                         reader.Position = token.position + token.length;
                     }
 
@@ -257,7 +257,7 @@ namespace Serialization.XML
                             if (xmlReader.ReadToken(out next) && next.type == Token.Type.Text)
                             {
                                 length = xmlReader.GetText(next, nameBuffer);
-                                USpan<char> closingName = nameBuffer.Slice(0, length);
+                                USpan<char> closingName = nameBuffer.GetSpan(length);
                                 if (closingName.SequenceEqual(Name))
                                 {
                                     next = xmlReader.ReadToken(); //close

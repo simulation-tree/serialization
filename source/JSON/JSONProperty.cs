@@ -205,7 +205,7 @@ namespace Serialization.JSON
                 double number = Number;
                 USpan<char> buffer = stackalloc char[64];
                 uint length = number.ToString(buffer);
-                result.Append(buffer.Slice(0, length));
+                result.Append(buffer.GetSpan(length));
             }
             else if (type == Type.Boolean)
             {
