@@ -8,7 +8,7 @@ namespace Serialization.JSON
     public struct JSONProperty : IDisposable
     {
         private readonly Text name;
-        private Allocation value;
+        private MemoryAddress value;
         private uint length;
         private Type type;
 
@@ -42,7 +42,7 @@ namespace Serialization.JSON
                     uint newLength = value.Length * sizeof(char);
                     if (length < newLength)
                     {
-                        Allocation.Resize(ref this.value, newLength);
+                        MemoryAddress.Resize(ref this.value, newLength);
                     }
 
                     length = newLength;
@@ -115,7 +115,7 @@ namespace Serialization.JSON
         {
             this.name = new(name);
             length = text.Length * sizeof(char);
-            value = Allocation.Create(length);
+            value = MemoryAddress.Allocate(length);
             value.Write(0, text);
             type = Type.Text;
         }
@@ -124,7 +124,7 @@ namespace Serialization.JSON
         {
             this.name = new(name);
             length = sizeof(double);
-            value = Allocation.Create(length);
+            value = MemoryAddress.Allocate(length);
             value.Write(0, number);
             type = Type.Number;
         }
@@ -133,7 +133,7 @@ namespace Serialization.JSON
         {
             this.name = new(name);
             length = sizeof(bool);
-            value = Allocation.Create(length);
+            value = MemoryAddress.Allocate(length);
             value.Write(0, boolean);
             type = Type.Boolean;
         }
@@ -142,7 +142,7 @@ namespace Serialization.JSON
         {
             this.name = new(name);
             length = (uint)sizeof(nint);
-            value = Allocation.Create(length);
+            value = MemoryAddress.Allocate(length);
             value.Write(0, obj.Address);
             type = Type.Object;
         }
@@ -151,7 +151,7 @@ namespace Serialization.JSON
         {
             this.name = new(name);
             length = (uint)sizeof(nint);
-            value = Allocation.Create(length);
+            value = MemoryAddress.Allocate(length);
             value.Write(0, array.Address);
             type = Type.Array;
         }

@@ -9,18 +9,8 @@ namespace Serialization.XML
         private readonly Text name;
         private readonly Text value;
 
-        public readonly USpan<char> Name
-        {
-            get => name.AsSpan();
-            set => name.CopyFrom(value);
-        }
-
-        public readonly USpan<char> Value
-        {
-            get => value.AsSpan();
-            set => value.CopyFrom(value);
-        }
-
+        public readonly Text.Borrowed Name => name.Borrow();
+        public readonly Text.Borrowed Value => value.Borrow();
         public readonly bool IsDisposed => name.IsDisposed;
 
         public XMLAttribute(USpan<char> name, USpan<char> value)

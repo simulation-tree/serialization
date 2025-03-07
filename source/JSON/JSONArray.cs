@@ -281,7 +281,7 @@ namespace Serialization.JSON
             public static Implementation* Allocate()
             {
                 List<JSONProperty> elements = new(4);
-                ref Implementation value = ref Allocations.Allocate<Implementation>();
+                ref Implementation value = ref MemoryAddress.Allocate<Implementation>();
                 value = new(elements);
                 fixed (Implementation* pointer = &value)
                 {
@@ -291,7 +291,7 @@ namespace Serialization.JSON
 
             public static void Free(ref Implementation* array)
             {
-                Allocations.ThrowIfNull(array);
+                MemoryAddress.ThrowIfDefault(array);
 
                 for (uint i = 0; i < array->elements.Count; i++)
                 {
@@ -300,7 +300,7 @@ namespace Serialization.JSON
                 }
 
                 array->elements.Dispose();
-                Allocations.Free(ref array);
+                MemoryAddress.Free(ref array);
             }
         }
     }

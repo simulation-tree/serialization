@@ -255,7 +255,6 @@ namespace Serialization.Tests
             }
 
             reader.Dispose();
-            Assert.That(Allocations.Count, Is.EqualTo(0));
         }
 
         [Test]

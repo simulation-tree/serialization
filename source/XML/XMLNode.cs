@@ -17,20 +17,12 @@ namespace Serialization.XML
         /// <summary>
         /// Name of the node.
         /// </summary>
-        public readonly USpan<char> Name
-        {
-            get => name.AsSpan();
-            set => name.CopyFrom(value);
-        }
+        public readonly Text.Borrowed Name => name.Borrow();
 
         /// <summary>
         /// Possible text content inside the node.
         /// </summary>
-        public readonly USpan<char> Content
-        {
-            get => content.AsSpan();
-            set => content.CopyFrom(value);
-        }
+        public readonly Text.Borrowed Content => content.Borrow();
 
         public readonly bool IsPrologue => prologue;
 
@@ -53,7 +45,7 @@ namespace Serialization.XML
             {
                 if (TryIndexOfAttribute(name, out uint index))
                 {
-                    return attributes[index].Value;
+                    return attributes[index].Value.AsSpan();
                 }
                 else throw new NullReferenceException($"No attribute {name.ToString()} found");
             }
@@ -62,9 +54,9 @@ namespace Serialization.XML
                 for (uint i = 0; i < attributes.Count; i++)
                 {
                     XMLAttribute attribute = attributes[i];
-                    if (attribute.Name.SequenceEqual(name))
+                    if (attribute.Name.Equals(name))
                     {
-                        attribute.Value = value;
+                        attribute.Value.CopyFrom(value);
                     }
                 }
 
@@ -95,12 +87,35 @@ namespace Serialization.XML
             children = new(4);
         }
 #endif
+        public XMLNode(string name)
+        {
+            this.name = new(name);
+            attributes = new(4);
+            content = new(0);
+            children = new(4);
+        }
 
         public XMLNode(USpan<char> name)
         {
             this.name = new(name);
             attributes = new(4);
             content = new(0);
+            children = new(4);
+        }
+
+        public XMLNode(string name, string content)
+        {
+            this.name = new(name);
+            attributes = new(4);
+            this.content = new(content);
+            children = new(4);
+        }
+
+        public XMLNode(USpan<char> name, USpan<char> content)
+        {
+            this.name = new(name);
+            attributes = new(4);
+            this.content = new(content);
             children = new(4);
         }
 
@@ -134,7 +149,17 @@ namespace Serialization.XML
         public readonly override string ToString()
         {
             Text buffer = new(0);
-            ToString(buffer, "  ".AsSpan(), true, true);
+            ToStringFlags flags = ToStringFlags.CarriageReturn | ToStringFlags.LineFeed;
+            ToString(buffer, "  ", flags);
+            string str = buffer.AsSpan().ToString();
+            buffer.Dispose();
+            return str;
+        }
+
+        public readonly string ToString(string indent, ToStringFlags flags = default)
+        {
+            Text buffer = new(0);
+            ToString(buffer, indent, flags);
             string str = buffer.AsSpan().ToString();
             buffer.Dispose();
             return str;
@@ -143,7 +168,8 @@ namespace Serialization.XML
         readonly void ISerializable.Write(ByteWriter writer)
         {
             Text buffer = new(0);
-            ToString(buffer);
+            ToStringFlags flags = ToStringFlags.CarriageReturn | ToStringFlags.LineFeed;
+            ToString(buffer, default, flags, 0);
             writer.WriteSpan(buffer.AsSpan());
             buffer.Dispose();
         }
@@ -220,7 +246,7 @@ namespace Serialization.XML
                             if (xmlReader.PeekToken(closeToken.position + closeToken.length, out closeToken) && closeToken.type == Token.Type.Text)
                             {
                                 USpan<char> closingName = nameBuffer.Slice(0, xmlReader.GetText(closeToken, nameBuffer));
-                                if (closingName.SequenceEqual(Name))
+                                if (name.Equals(closingName))
                                 {
                                     xmlReader.ReadToken(); //open
                                     xmlReader.ReadToken(); //slash
@@ -258,7 +284,7 @@ namespace Serialization.XML
                             {
                                 length = xmlReader.GetText(next, nameBuffer);
                                 USpan<char> closingName = nameBuffer.GetSpan(length);
-                                if (closingName.SequenceEqual(Name))
+                                if (name.Equals(closingName))
                                 {
                                     next = xmlReader.ReadToken(); //close
                                     if (next.type != Token.Type.Close)
@@ -287,7 +313,17 @@ namespace Serialization.XML
             }
         }
 
-        public readonly void ToString(Text destination, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(Text destination, USpan<char> indent = default, ToStringFlags flags = default)
+        {
+            ToString(destination, indent, flags, 0);
+        }
+
+        public readonly void ToString(Text destination, string indent = "", ToStringFlags flags = default)
+        {
+            ToString(destination, indent.AsSpan(), flags, 0);
+        }
+
+        private readonly void ToString(Text destination, USpan<char> indent, ToStringFlags flags, byte depth)
         {
             for (int i = 0; i < depth; i++)
             {
@@ -326,8 +362,19 @@ namespace Serialization.XML
                 {
                     foreach (XMLNode child in children)
                     {
+                        if (depth == 1 && (flags & ToStringFlags.RootSpacing) == ToStringFlags.RootSpacing)
+                        {
+                            NewLine();
+                        }
+
                         NewLine();
-                        child.ToString(destination, indent, cr, lf, depth);
+                        child.ToString(destination, indent, flags, depth);
+                    }
+
+
+                    if (depth == 1 && (flags & ToStringFlags.RootSpacing) == ToStringFlags.RootSpacing)
+                    {
+                        NewLine();
                     }
 
                     NewLine();
@@ -353,12 +400,12 @@ namespace Serialization.XML
 
             void NewLine()
             {
-                if (cr)
+                if ((flags & ToStringFlags.CarriageReturn) == ToStringFlags.CarriageReturn)
                 {
                     destination.Append('\r');
                 }
 
-                if (lf)
+                if ((flags & ToStringFlags.LineFeed) == ToStringFlags.LineFeed)
                 {
                     destination.Append('\n');
                 }
@@ -370,6 +417,9 @@ namespace Serialization.XML
             }
         }
 
+        /// <summary>
+        /// Adds the given <paramref name="child"/> node to the list of children.
+        /// </summary>
         public readonly void Add(XMLNode child)
         {
             children.Add(child);
@@ -399,7 +449,7 @@ namespace Serialization.XML
         {
             foreach (XMLNode node in children)
             {
-                if (node.Name.SequenceEqual(name))
+                if (node.Name.Equals(name))
                 {
                     return node;
                 }
@@ -417,7 +467,7 @@ namespace Serialization.XML
         {
             foreach (XMLNode node in children)
             {
-                if (node.Name.SequenceEqual(name))
+                if (node.Name.Equals(name))
                 {
                     child = node;
                     return true;
@@ -443,9 +493,9 @@ namespace Serialization.XML
             for (uint i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
-                if (attribute.Name.SequenceEqual(name))
+                if (attribute.Name.Equals(name))
                 {
-                    return attribute.Value;
+                    return attribute.Value.AsSpan();
                 }
             }
 
@@ -457,9 +507,9 @@ namespace Serialization.XML
             for (uint i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
-                if (attribute.Name.SequenceEqual(name))
+                if (attribute.Name.Equals(name))
                 {
-                    value = attribute.Value;
+                    value = attribute.Value.AsSpan();
                     return true;
                 }
             }
@@ -478,7 +528,7 @@ namespace Serialization.XML
             for (uint i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
-                if (attribute.Name.SequenceEqual(name))
+                if (attribute.Name.Equals(name))
                 {
                     index = i;
                     return true;
@@ -494,7 +544,7 @@ namespace Serialization.XML
             for (uint i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
-                if (attribute.Name.SequenceEqual(name))
+                if (attribute.Name.Equals(name))
                 {
                     return true;
                 }
@@ -513,7 +563,7 @@ namespace Serialization.XML
             for (uint i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
-                if (attribute.Name.SequenceEqual(name))
+                if (attribute.Name.Equals(name))
                 {
                     return i;
                 }
@@ -536,9 +586,9 @@ namespace Serialization.XML
             for (uint i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
-                if (attribute.Name.SequenceEqual(name))
+                if (attribute.Name.Equals(name))
                 {
-                    attribute.Value = value;
+                    attribute.Value.CopyFrom(value);
                     return false;
                 }
             }
@@ -558,7 +608,7 @@ namespace Serialization.XML
             for (uint i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
-                if (attribute.Name.SequenceEqual(name))
+                if (attribute.Name.Equals(name))
                 {
                     attributes.RemoveAt(i);
                     return true;
@@ -580,6 +630,15 @@ namespace Serialization.XML
 
         public readonly bool Equals(XMLNode other)
         {
+            if (IsDisposed && other.IsDisposed)
+            {
+                return true;
+            }
+            else if (IsDisposed != other.IsDisposed)
+            {
+                return false;
+            }
+
             return name.Equals(other.name) && attributes.Equals(other.attributes) && content.Equals(other.content) && children.Equals(other.children);
         }
 

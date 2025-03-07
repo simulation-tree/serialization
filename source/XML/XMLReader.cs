@@ -7,7 +7,7 @@ namespace Serialization.XML
     public ref struct XMLReader
     {
         private ByteReader reader;
-        private bool inside;
+        private bool insideNode;
 
         public readonly ref uint Position => ref reader.Position;
 
@@ -27,7 +27,7 @@ namespace Serialization.XML
         public XMLReader(ByteReader reader)
         {
             this.reader = reader;
-            inside = false;
+            insideNode = false;
         }
 
         public readonly USpan<byte> AsSpan()
@@ -95,16 +95,16 @@ namespace Serialization.XML
                             token = new Token(start, position - start, Token.Type.Text);
                             return true;
                         }
-                        else if (inside)
+                        else if (insideNode)
                         {
-                            if (c == ' ' || c == '=' || c == '>')
+                            if (c == ' ' || c == '=' || c == '>' || c  == '/')
                             {
                                 token = new Token(start, position - start, Token.Type.Text);
                                 return true;
                             }
                             else if (!char.IsLetterOrDigit(c))
                             {
-                                throw new Exception($"Invalid XML, unknown symbol '{c}' inside node.");
+                                throw new Exception($"Invalid XML, unknown symbol '{c}' inside node");
                             }
                         }
 
@@ -141,11 +141,11 @@ namespace Serialization.XML
             reader.Position = end;
             if (token.type == Token.Type.Open)
             {
-                inside = true;
+                insideNode = true;
             }
             else if (token.type == Token.Type.Close)
             {
-                inside = false;
+                insideNode = false;
             }
 
             return read;

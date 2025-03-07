@@ -22,7 +22,7 @@ namespace Serialization.XML
             return $"Token(type: {type} position:{position} length:{length})";
         }
 
-        public unsafe readonly string ToString(XMLReader reader)
+        public readonly string ToString(XMLReader reader)
         {
             using Text buffer = new(0);
             ToString(reader, buffer);
