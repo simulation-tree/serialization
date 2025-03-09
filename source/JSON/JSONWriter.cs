@@ -11,7 +11,7 @@ namespace Serialization.JSON
         private Token last;
 
         public readonly bool IsDisposed => writer.IsDisposed;
-        public readonly uint Position => writer.Position;
+        public readonly int Position => writer.Position;
 
 #if NET
         [Obsolete("Default constructor not available", true)]
@@ -31,15 +31,15 @@ namespace Serialization.JSON
         {
             ByteReader reader = new(AsSpan());
             Text tempBuffer = new(Position * 2);
-            USpan<char> buffer = tempBuffer.AsSpan();
-            uint read = reader.ReadUTF8(buffer);
+            Span<char> buffer = tempBuffer.AsSpan();
+            int read = reader.ReadUTF8(buffer);
             reader.Dispose();
-            string result = buffer.GetSpan(read).ToString();
+            string result = buffer.Slice(0, read).ToString();
             tempBuffer.Dispose();
             return result;
         }
 
-        public readonly USpan<byte> AsSpan()
+        public readonly System.Span<byte> AsSpan()
         {
             return writer.AsSpan();
         }
@@ -73,7 +73,7 @@ namespace Serialization.JSON
             writer.WriteUTF8(']');
         }
 
-        private void WriteText(USpan<char> value)
+        private void WriteText(ReadOnlySpan<char> value)
         {
             last = new(writer.Position, sizeof(char) * (2 + value.Length), Token.Type.Text);
             writer.WriteUTF8('"');
@@ -84,7 +84,7 @@ namespace Serialization.JSON
         /// <summary>
         /// Writes the given text value assuming its an element inside an array.
         /// </summary>
-        public void WriteTextElement(USpan<char> value)
+        public void WriteTextElement(ReadOnlySpan<char> value)
         {
             if (last.type != Token.Type.StartObject && last.type != Token.Type.StartArray && last.type != Token.Type.Unknown)
             {
@@ -96,11 +96,11 @@ namespace Serialization.JSON
 
         public void WriteNumber(double number)
         {
-            USpan<char> buffer = stackalloc char[32];
-            uint length = number.ToString(buffer);
+            Span<char> buffer = stackalloc char[32];
+            int length = number.ToString(buffer);
 
             last = new(writer.Position, sizeof(char) * length, Token.Type.Number);
-            writer.WriteUTF8(buffer.GetSpan(length));
+            writer.WriteUTF8(buffer.Slice(0, length));
         }
 
         public void WriteBoolean(bool value)
@@ -133,7 +133,7 @@ namespace Serialization.JSON
         /// <summary>
         /// Writes only the name of the property.
         /// </summary>
-        public void WriteName(USpan<char> name)
+        public void WriteName(ReadOnlySpan<char> name)
         {
             if (last.type != Token.Type.StartObject && last.type != Token.Type.StartArray && last.type != Token.Type.Unknown)
             {
@@ -149,18 +149,18 @@ namespace Serialization.JSON
             WriteName(name.AsSpan());
         }
 
-        public void WriteProperty(USpan<char> name, USpan<char> text)
+        public void WriteProperty(ReadOnlySpan<char> name, ReadOnlySpan<char> text)
         {
             WriteName(name);
             WriteText(text);
         }
 
-        public void WriteProperty(string name, USpan<char> text)
+        public void WriteProperty(string name, ReadOnlySpan<char> text)
         {
             WriteProperty(name.AsSpan(), text);
         }
 
-        public void WriteProperty(USpan<char> name, double number)
+        public void WriteProperty(ReadOnlySpan<char> name, double number)
         {
             WriteName(name);
             WriteNumber(number);
@@ -171,7 +171,7 @@ namespace Serialization.JSON
             WriteProperty(name.AsSpan(), number);
         }
 
-        public void WriteProperty(USpan<char> name, bool boolean)
+        public void WriteProperty(ReadOnlySpan<char> name, bool boolean)
         {
             WriteName(name);
             WriteBoolean(boolean);
@@ -182,7 +182,7 @@ namespace Serialization.JSON
             WriteProperty(name.AsSpan(), boolean);
         }
 
-        public void WriteProperty<T>(USpan<char> name, T obj) where T : unmanaged, IJSONSerializable
+        public void WriteProperty<T>(ReadOnlySpan<char> name, T obj) where T : unmanaged, IJSONSerializable
         {
             WriteName(name);
             WriteObject(obj);

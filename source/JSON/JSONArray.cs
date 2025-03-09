@@ -11,12 +11,12 @@ namespace Serialization.JSON
     {
         private Implementation* value;
 
-        public readonly uint Count => value->elements.Count;
+        public readonly int Count => value->elements.Count;
         public readonly bool IsDisposed => value is null;
         public readonly nint Address => (nint)value;
-        public readonly USpan<JSONProperty> Elements => value->elements.AsSpan();
+        public readonly ReadOnlySpan<JSONProperty> Elements => value->elements.AsSpan();
 
-        public readonly JSONProperty this[uint index]
+        public readonly JSONProperty this[int index]
         {
             get
             {
@@ -45,7 +45,7 @@ namespace Serialization.JSON
             Implementation.Free(ref value);
         }
 
-        public readonly void ToString(Text result, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(Text result, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             ThrowIfDisposed();
 
@@ -58,7 +58,7 @@ namespace Serialization.JSON
                     Indent(indent);
                 }
 
-                uint position = 0;
+                int position = 0;
                 while (true)
                 {
                     ref JSONProperty element = ref value->elements[position];
@@ -102,7 +102,7 @@ namespace Serialization.JSON
                 }
             }
 
-            void Indent(USpan<char> indent)
+            void Indent(ReadOnlySpan<char> indent)
             {
                 result.Append(indent);
             }
@@ -127,7 +127,7 @@ namespace Serialization.JSON
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfOutOfRange(uint index)
+        private readonly void ThrowIfOutOfRange(int index)
         {
             if (index >= Count)
             {
@@ -135,14 +135,14 @@ namespace Serialization.JSON
             }
         }
 
-        public readonly void Add(USpan<char> text)
+        public readonly void Add(ReadOnlySpan<char> text)
         {
             ThrowIfDisposed();
 
-            USpan<char> nameBuffer = stackalloc char[16];
-            uint index = value->elements.Count;
-            uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length), text));
+            Span<char> nameBuffer = stackalloc char[16];
+            int index = value->elements.Count;
+            int length = index.ToString(nameBuffer);
+            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), text));
         }
 
         public readonly void Add(string text)
@@ -154,50 +154,50 @@ namespace Serialization.JSON
         {
             ThrowIfDisposed();
 
-            USpan<char> nameBuffer = stackalloc char[16];
-            uint index = value->elements.Count;
-            uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length), number));
+            Span<char> nameBuffer = stackalloc char[16];
+            int index = value->elements.Count;
+            int length = index.ToString(nameBuffer);
+            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), number));
         }
 
         public readonly void Add(bool boolean)
         {
             ThrowIfDisposed();
 
-            USpan<char> nameBuffer = stackalloc char[16];
-            uint index = value->elements.Count;
-            uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length), boolean));
+            Span<char> nameBuffer = stackalloc char[16];
+            int index = value->elements.Count;
+            int length = index.ToString(nameBuffer);
+            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), boolean));
         }
 
         public readonly void Add(JSONObject jsonObject)
         {
             ThrowIfDisposed();
 
-            USpan<char> nameBuffer = stackalloc char[16];
-            uint index = value->elements.Count;
-            uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length), jsonObject));
+            Span<char> nameBuffer = stackalloc char[16];
+            int index = value->elements.Count;
+            int length = index.ToString(nameBuffer);
+            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), jsonObject));
         }
 
         public readonly void Add(JSONArray jsonArray)
         {
             ThrowIfDisposed();
 
-            USpan<char> nameBuffer = stackalloc char[16];
-            uint index = value->elements.Count;
-            uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length), jsonArray));
+            Span<char> nameBuffer = stackalloc char[16];
+            int index = value->elements.Count;
+            int length = index.ToString(nameBuffer);
+            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), jsonArray));
         }
 
         public readonly void AddNull()
         {
             ThrowIfDisposed();
 
-            USpan<char> nameBuffer = stackalloc char[16];
-            uint index = value->elements.Count;
-            uint length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.GetSpan(length)));
+            Span<char> nameBuffer = stackalloc char[16];
+            int index = value->elements.Count;
+            int length = index.ToString(nameBuffer);
+            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length)));
         }
 
         readonly void ISerializable.Write(ByteWriter writer)
@@ -235,9 +235,9 @@ namespace Serialization.JSON
                     else if (token.type == Token.Type.Text)
                     {
                         Text textBuffer = new(token.length * 4);
-                        USpan<char> bufferSpan = textBuffer.AsSpan();
-                        uint textLength = jsonReader.GetText(token, bufferSpan);
-                        USpan<char> text = bufferSpan.GetSpan(textLength);
+                        Span<char> bufferSpan = textBuffer.AsSpan();
+                        int textLength = jsonReader.GetText(token, bufferSpan);
+                        Span<char> text = bufferSpan.Slice(0, textLength);
                         if (text.Length > 0 && text[0] == '"')
                         {
                             text = text.Slice(1, text.Length - 2);
@@ -293,7 +293,7 @@ namespace Serialization.JSON
             {
                 MemoryAddress.ThrowIfDefault(array);
 
-                for (uint i = 0; i < array->elements.Count; i++)
+                for (int i = 0; i < array->elements.Count; i++)
                 {
                     JSONProperty property = array->elements[i];
                     property.Dispose();

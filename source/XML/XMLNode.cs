@@ -26,7 +26,7 @@ namespace Serialization.XML
 
         public readonly bool IsPrologue => prologue;
 
-        public readonly ref XMLNode this[uint index]
+        public readonly ref XMLNode this[int index]
         {
             get
             {
@@ -39,11 +39,11 @@ namespace Serialization.XML
             }
         }
 
-        public readonly USpan<char> this[USpan<char> name]
+        public readonly ReadOnlySpan<char> this[ReadOnlySpan<char> name]
         {
             get
             {
-                if (TryIndexOfAttribute(name, out uint index))
+                if (TryIndexOfAttribute(name, out int index))
                 {
                     return attributes[index].Value.AsSpan();
                 }
@@ -51,7 +51,7 @@ namespace Serialization.XML
             }
             set
             {
-                for (uint i = 0; i < attributes.Count; i++)
+                for (int i = 0; i < attributes.Count; i++)
                 {
                     XMLAttribute attribute = attributes[i];
                     if (attribute.Name.Equals(name))
@@ -67,14 +67,14 @@ namespace Serialization.XML
         /// <summary>
         /// Attributes defining the node.
         /// </summary>
-        public readonly USpan<XMLAttribute> Attributes => attributes.AsSpan();
+        public readonly ReadOnlySpan<XMLAttribute> Attributes => attributes.AsSpan();
 
         /// <summary>
         /// Child XML nodes.
         /// </summary>
-        public readonly USpan<XMLNode> Children => children.AsSpan();
+        public readonly ReadOnlySpan<XMLNode> Children => children.AsSpan();
 
-        public readonly uint Count => children.Count;
+        public readonly int Count => children.Count;
 
         public readonly bool IsDisposed => name.IsDisposed;
 
@@ -95,7 +95,7 @@ namespace Serialization.XML
             children = new(4);
         }
 
-        public XMLNode(USpan<char> name)
+        public XMLNode(ReadOnlySpan<char> name)
         {
             this.name = new(name);
             attributes = new(4);
@@ -111,7 +111,7 @@ namespace Serialization.XML
             children = new(4);
         }
 
-        public XMLNode(USpan<char> name, USpan<char> content)
+        public XMLNode(ReadOnlySpan<char> name, ReadOnlySpan<char> content)
         {
             this.name = new(name);
             attributes = new(4);
@@ -192,10 +192,10 @@ namespace Serialization.XML
 
             //read name
             token = xmlReader.ReadToken();
-            USpan<char> nameBuffer = stackalloc char[256];
-            USpan<char> valueBuffer = stackalloc char[256];
-            uint length = xmlReader.GetText(token, nameBuffer);
-            name = new(nameBuffer.GetSpan(length));
+            Span<char> nameBuffer = stackalloc char[256];
+            Span<char> valueBuffer = stackalloc char[256];
+            int length = xmlReader.GetText(token, nameBuffer);
+            name = new(nameBuffer.Slice(0, length));
 
             //read attributes inside first node
             while (xmlReader.ReadToken(out token))
@@ -222,8 +222,8 @@ namespace Serialization.XML
                 {
                     length = xmlReader.GetText(token, nameBuffer);
                     token = xmlReader.ReadToken();
-                    uint valueLength = xmlReader.GetText(token, valueBuffer);
-                    XMLAttribute attribute = new(nameBuffer.GetSpan(length), valueBuffer.GetSpan(valueLength));
+                    int valueLength = xmlReader.GetText(token, valueBuffer);
+                    XMLAttribute attribute = new(nameBuffer.Slice(0, length), valueBuffer.Slice(0, valueLength));
                     attributes.Add(attribute);
                 }
             }
@@ -245,7 +245,7 @@ namespace Serialization.XML
                         {
                             if (xmlReader.PeekToken(closeToken.position + closeToken.length, out closeToken) && closeToken.type == Token.Type.Text)
                             {
-                                USpan<char> closingName = nameBuffer.Slice(0, xmlReader.GetText(closeToken, nameBuffer));
+                                ReadOnlySpan<char> closingName = nameBuffer.Slice(0, xmlReader.GetText(closeToken, nameBuffer));
                                 if (name.Equals(closingName))
                                 {
                                     xmlReader.ReadToken(); //open
@@ -267,9 +267,9 @@ namespace Serialization.XML
                     else
                     {
                         using Text temp = new(token.length);
-                        USpan<char> tempSpan = temp.AsSpan();
-                        uint written = reader.PeekUTF8(token.position, token.length, tempSpan);
-                        content.Append(tempSpan.GetSpan(written));
+                        Span<char> tempSpan = temp.AsSpan();
+                        int written = reader.PeekUTF8(token.position, token.length, tempSpan);
+                        content.Append(tempSpan.Slice(0, written));
                         reader.Position = token.position + token.length;
                     }
 
@@ -283,7 +283,7 @@ namespace Serialization.XML
                             if (xmlReader.ReadToken(out next) && next.type == Token.Type.Text)
                             {
                                 length = xmlReader.GetText(next, nameBuffer);
-                                USpan<char> closingName = nameBuffer.GetSpan(length);
+                                ReadOnlySpan<char> closingName = nameBuffer.Slice(0, length);
                                 if (name.Equals(closingName))
                                 {
                                     next = xmlReader.ReadToken(); //close
@@ -313,7 +313,7 @@ namespace Serialization.XML
             }
         }
 
-        public readonly void ToString(Text destination, USpan<char> indent = default, ToStringFlags flags = default)
+        public readonly void ToString(Text destination, ReadOnlySpan<char> indent = default, ToStringFlags flags = default)
         {
             ToString(destination, indent, flags, 0);
         }
@@ -323,7 +323,7 @@ namespace Serialization.XML
             ToString(destination, indent.AsSpan(), flags, 0);
         }
 
-        private readonly void ToString(Text destination, USpan<char> indent, ToStringFlags flags, byte depth)
+        private readonly void ToString(Text destination, ReadOnlySpan<char> indent, ToStringFlags flags, byte depth)
         {
             for (int i = 0; i < depth; i++)
             {
@@ -337,7 +337,7 @@ namespace Serialization.XML
             }
 
             destination.Append(Name);
-            for (uint i = 0; i < attributes.Count; i++)
+            for (int i = 0; i < attributes.Count; i++)
             {
                 destination.Append(' ');
                 XMLAttribute attribute = attributes[i];
@@ -411,7 +411,7 @@ namespace Serialization.XML
                 }
             }
 
-            void Indent(USpan<char> indent)
+            void Indent(ReadOnlySpan<char> indent)
             {
                 destination.Append(indent);
             }
@@ -425,7 +425,7 @@ namespace Serialization.XML
             children.Add(child);
         }
 
-        public readonly void RemoveAt(uint index)
+        public readonly void RemoveAt(int index)
         {
             children.RemoveAtBySwapping(index);
         }
@@ -435,17 +435,17 @@ namespace Serialization.XML
             return children.TryRemoveBySwapping(node);
         }
 
-        public readonly uint IndexOf(XMLNode node)
+        public readonly int IndexOf(XMLNode node)
         {
             return children.IndexOf(node);
         }
 
-        public readonly bool TryIndexOf(XMLNode node, out uint index)
+        public readonly bool TryIndexOf(XMLNode node, out int index)
         {
             return children.TryIndexOf(node, out index);
         }
 
-        public readonly XMLNode GetFirst(USpan<char> name)
+        public readonly XMLNode GetFirst(ReadOnlySpan<char> name)
         {
             foreach (XMLNode node in children)
             {
@@ -463,7 +463,7 @@ namespace Serialization.XML
             return GetFirst(name.AsSpan());
         }
 
-        public readonly bool TryGetFirst(USpan<char> name, out XMLNode child)
+        public readonly bool TryGetFirst(ReadOnlySpan<char> name, out XMLNode child)
         {
             foreach (XMLNode node in children)
             {
@@ -483,14 +483,14 @@ namespace Serialization.XML
             return TryGetFirst(name.AsSpan(), out child);
         }
 
-        public readonly USpan<char> GetAttribute(string name)
+        public readonly ReadOnlySpan<char> GetAttribute(string name)
         {
             return GetAttribute(name.AsSpan());
         }
 
-        public readonly USpan<char> GetAttribute(USpan<char> name)
+        public readonly ReadOnlySpan<char> GetAttribute(ReadOnlySpan<char> name)
         {
-            for (uint i = 0; i < attributes.Count; i++)
+            for (int i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
                 if (attribute.Name.Equals(name))
@@ -502,9 +502,9 @@ namespace Serialization.XML
             throw new NullReferenceException($"No attribute {name.ToString()} found");
         }
 
-        public readonly bool TryGetAttribute(USpan<char> name, out USpan<char> value)
+        public readonly bool TryGetAttribute(ReadOnlySpan<char> name, out ReadOnlySpan<char> value)
         {
-            for (uint i = 0; i < attributes.Count; i++)
+            for (int i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
                 if (attribute.Name.Equals(name))
@@ -518,14 +518,14 @@ namespace Serialization.XML
             return false;
         }
 
-        public readonly bool TryGetAttribute(string name, out USpan<char> value)
+        public readonly bool TryGetAttribute(string name, out ReadOnlySpan<char> value)
         {
             return TryGetAttribute(name.AsSpan(), out value);
         }
 
-        public readonly bool TryIndexOfAttribute(USpan<char> name, out uint index)
+        public readonly bool TryIndexOfAttribute(ReadOnlySpan<char> name, out int index)
         {
-            for (uint i = 0; i < attributes.Count; i++)
+            for (int i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
                 if (attribute.Name.Equals(name))
@@ -539,9 +539,9 @@ namespace Serialization.XML
             return false;
         }
 
-        public readonly bool ContainsAttribute(USpan<char> name)
+        public readonly bool ContainsAttribute(ReadOnlySpan<char> name)
         {
-            for (uint i = 0; i < attributes.Count; i++)
+            for (int i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
                 if (attribute.Name.Equals(name))
@@ -558,9 +558,9 @@ namespace Serialization.XML
             return ContainsAttribute(name.AsSpan());
         }
 
-        public readonly uint IndexOfAttribute(USpan<char> name)
+        public readonly int IndexOfAttribute(ReadOnlySpan<char> name)
         {
-            for (uint i = 0; i < attributes.Count; i++)
+            for (int i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
                 if (attribute.Name.Equals(name))
@@ -569,10 +569,10 @@ namespace Serialization.XML
                 }
             }
 
-            throw new IndexOutOfRangeException();
+            return -1;
         }
 
-        public readonly uint IndexOfAttribute(string name)
+        public readonly int IndexOfAttribute(string name)
         {
             return IndexOfAttribute(name.AsSpan());
         }
@@ -581,9 +581,9 @@ namespace Serialization.XML
         /// Creates a new attribute or assigns an existing one to the given value.
         /// </summary>
         /// <returns><c>true</c> if it was created, otherwise it was set</returns>
-        public readonly bool SetAttribute(USpan<char> name, USpan<char> value)
+        public readonly bool SetAttribute(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
         {
-            for (uint i = 0; i < attributes.Count; i++)
+            for (int i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
                 if (attribute.Name.Equals(name))
@@ -598,14 +598,14 @@ namespace Serialization.XML
             return true;
         }
 
-        public readonly bool SetAttribute(string name, USpan<char> value)
+        public readonly bool SetAttribute(string name, ReadOnlySpan<char> value)
         {
             return SetAttribute(name.AsSpan(), value);
         }
 
-        public readonly bool RemoveAttribute(USpan<char> name)
+        public readonly bool RemoveAttribute(ReadOnlySpan<char> name)
         {
-            for (uint i = 0; i < attributes.Count; i++)
+            for (int i = 0; i < attributes.Count; i++)
             {
                 XMLAttribute attribute = attributes[i];
                 if (attribute.Name.Equals(name))
@@ -647,7 +647,7 @@ namespace Serialization.XML
             return HashCode.Combine(name, attributes, content, children);
         }
 
-        public static XMLNode Create(USpan<char> name)
+        public static XMLNode Create(ReadOnlySpan<char> name)
         {
             return new XMLNode(name);
         }

@@ -4,13 +4,13 @@ namespace Serialization.XML
 {
     public readonly struct Token
     {
-        public readonly uint position;
-        public readonly uint length;
+        public readonly int position;
+        public readonly int length;
         public readonly Type type;
 
-        public readonly uint End => position + length;
+        public readonly int End => position + length;
 
-        public Token(uint position, uint length, Type type)
+        public Token(int position, int length, Type type)
         {
             this.position = position;
             this.length = length;
@@ -33,7 +33,7 @@ namespace Serialization.XML
         /// Adds the string representation of this token to the <paramref name="destination"/>.
         /// </summary>
         /// <returns>Amount of <see cref="char"/> values added.</returns>
-        public readonly uint ToString(XMLReader reader, Text destination)
+        public readonly int ToString(XMLReader reader, Text destination)
         {
             switch (type)
             {

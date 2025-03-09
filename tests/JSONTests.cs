@@ -126,12 +126,12 @@ namespace Serialization.Tests
             using ByteReader reader = ByteReader.CreateFromUTF8(settings.ToString());
             JSONReader jsonReader = new(reader);
             jsonReader.ReadToken(); //{
-            USpan<char> buffer = stackalloc char[32];
+            System.Span<char> buffer = stackalloc char[32];
             while (jsonReader.ReadToken(out Token token))
             {
                 if (token.type == Token.Type.Text)
                 {
-                    uint length = jsonReader.GetText(token, buffer);
+                    int length = jsonReader.GetText(token, buffer);
                     string name = buffer.Slice(0, length).ToString();
                     Token next = jsonReader.ReadToken();
                     if (next.type == Token.Type.Text)
@@ -272,7 +272,7 @@ namespace Serialization.Tests
             using JSONObject obj = reader.ReadObject<JSONObject>();
             JSONArray items = obj.GetArray("inventory");
             Assert.That(items.Count, Is.EqualTo(32));
-            for (uint i = 0; i < items.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
                 Assert.That(items[i].Number, Is.EqualTo(i));
             }
@@ -304,7 +304,7 @@ namespace Serialization.Tests
             using JSONObject jsonObject = reader.ReadObject<JSONObject>();
             JSONArray array = jsonObject.GetArray("inventory");
             Assert.That(array.Count, Is.EqualTo(32));
-            for (uint i = 0; i < array.Count; i++)
+            for (int i = 0; i < array.Count; i++)
             {
                 JSONProperty item = array[i];
                 JSONObject itemObj = item.Object;
@@ -325,10 +325,10 @@ namespace Serialization.Tests
             private Text name;
             private Text value;
 
-            public readonly USpan<char> Name => name.AsSpan();
-            public readonly USpan<char> Value => value.AsSpan();
+            public readonly System.Span<char> Name => name.AsSpan();
+            public readonly System.Span<char> Value => value.AsSpan();
 
-            public DummyJSONObject(USpan<char> name, USpan<char> value, int quantity, bool isRare)
+            public DummyJSONObject(System.Span<char> name, System.Span<char> value, int quantity, bool isRare)
             {
                 this.name = new(name);
                 this.value = new(value);
@@ -352,9 +352,9 @@ namespace Serialization.Tests
 
             void IJSONSerializable.Read(JSONReader reader)
             {
-                USpan<char> buffer = stackalloc char[64];
+                Span<char> buffer = stackalloc char[64];
                 reader.ReadToken();
-                uint length = reader.ReadText(buffer);
+                int length = reader.ReadText(buffer);
                 name = new(buffer.Slice(0, length));
                 reader.ReadToken();
                 length = reader.ReadText(buffer);

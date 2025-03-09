@@ -9,9 +9,8 @@ namespace Serialization.XML
         private ByteReader reader;
         private bool insideNode;
 
-        public readonly ref uint Position => ref reader.Position;
-
-        public readonly uint Length => reader.Length;
+        public readonly ref int Position => ref reader.Position;
+        public readonly int Length => reader.Length;
 
 #if NET
         [Obsolete("Default constructor not available", true)]
@@ -30,17 +29,17 @@ namespace Serialization.XML
             insideNode = false;
         }
 
-        public readonly USpan<byte> AsSpan()
+        public readonly System.Span<byte> AsSpan()
         {
             return reader.GetBytes();
         }
 
-        public readonly bool PeekToken(uint position, out Token token)
+        public readonly bool PeekToken(int position, out Token token)
         {
             token = default;
             while (position < reader.Length)
             {
-                uint cLength = reader.PeekUTF8(position, out char c, out char high);
+                int cLength = reader.PeekUTF8(position, out char c, out char high);
                 if (c == '<')
                 {
                     token = new Token(position, cLength, Token.Type.Open);
@@ -63,7 +62,7 @@ namespace Serialization.XML
                 }
                 else if (c == '"')
                 {
-                    uint start = position;
+                    int start = position;
                     position += cLength;
                     while (position < reader.Length)
                     {
@@ -85,7 +84,7 @@ namespace Serialization.XML
                 }
                 else if (char.IsLetterOrDigit(c) || !IsWhitespace(c))
                 {
-                    uint start = position;
+                    int start = position;
                     position += cLength;
                     while (position < reader.Length)
                     {
@@ -97,7 +96,7 @@ namespace Serialization.XML
                         }
                         else if (insideNode)
                         {
-                            if (c == ' ' || c == '=' || c == '>' || c  == '/')
+                            if (c == ' ' || c == '=' || c == '>' || c == '/')
                             {
                                 token = new Token(start, position - start, Token.Type.Text);
                                 return true;
@@ -137,7 +136,7 @@ namespace Serialization.XML
         public bool ReadToken(out Token token)
         {
             bool read = PeekToken(out token);
-            uint end = token.position + token.length;
+            int end = token.position + token.length;
             reader.Position = end;
             if (token.type == Token.Type.Open)
             {
@@ -164,12 +163,12 @@ namespace Serialization.XML
         /// the <paramref name="destination"/>.
         /// </summary>
         /// <returns>Amount of <see cref="char"/> values copied.</returns>
-        public readonly uint GetText(Token token, USpan<char> destination)
+        public readonly int GetText(Token token, Span<char> destination)
         {
-            uint length = reader.PeekUTF8(token.position, token.length, destination);
+            int length = reader.PeekUTF8(token.position, token.length, destination);
             if (destination[0] == '"')
             {
-                for (uint i = 0; i < length - 1; i++)
+                for (int i = 0; i < length - 1; i++)
                 {
                     destination[i] = destination[i + 1];
                 }
@@ -180,11 +179,11 @@ namespace Serialization.XML
         }
 
         [SkipLocalsInit]
-        public readonly uint GetText(Token token, Text destination)
+        public readonly int GetText(Token token, Text destination)
         {
-            USpan<char> buffer = stackalloc char[(int)token.length];
-            uint length = GetText(token, buffer);
-            destination.Append(buffer.GetSpan(length));
+            Span<char> buffer = stackalloc char[token.length];
+            int length = GetText(token, buffer);
+            destination.Append(buffer.Slice(0, length));
             return length;
         }
 

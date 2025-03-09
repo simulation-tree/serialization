@@ -32,9 +32,9 @@ namespace Serialization.JSON
 
         public readonly bool PeekToken(out Token token)
         {
-            USpan<char> buffer = stackalloc char[8];
+            Span<char> buffer = stackalloc char[8];
             token = default;
-            uint position = reader.Position;
+            int position = reader.Position;
             while (position < reader.Length)
             {
                 byte cLength = reader.PeekUTF8(position, out char c, out _);
@@ -60,7 +60,7 @@ namespace Serialization.JSON
                 }
                 else if (c == '"')
                 {
-                    uint start = position;
+                    int start = position;
                     position += cLength;
                     while (position < reader.Length)
                     {
@@ -77,14 +77,14 @@ namespace Serialization.JSON
                 }
                 else if (c == 't' || c == 'f')
                 {
-                    uint peekLength = reader.PeekUTF8(position, 5, buffer);
-                    if (buffer.GetSpan(peekLength).SequenceEqual("false".AsSpan()))
+                    int peekLength = reader.PeekUTF8(position, 5, buffer);
+                    if (buffer.Slice(0, peekLength).SequenceEqual("false".AsSpan()))
                     {
                         token = new Token(position, peekLength, Token.Type.False);
                         return true;
                     }
 
-                    USpan<char> smallerBuffer = buffer.GetSpan(peekLength - 1);
+                    Span<char> smallerBuffer = buffer.Slice(0, peekLength - 1);
                     if (smallerBuffer.SequenceEqual("true".AsSpan()))
                     {
                         token = new Token(position, peekLength - 1, Token.Type.True);
@@ -95,7 +95,7 @@ namespace Serialization.JSON
                 }
                 else if (char.IsDigit(c) || c == '.' || c == '-')
                 {
-                    uint start = position;
+                    int start = position;
                     position += cLength;
                     while (position < reader.Length)
                     {
@@ -131,12 +131,12 @@ namespace Serialization.JSON
         public bool ReadToken(out Token token)
         {
             bool read = PeekToken(out token);
-            uint end = token.position + token.length;
+            int end = token.position + token.length;
             reader.Position = end;
             return read;
         }
 
-        public uint ReadText(USpan<char> buffer)
+        public int ReadText(Span<char> buffer)
         {
             while (ReadToken(out Token token))
             {
@@ -231,14 +231,14 @@ namespace Serialization.JSON
             throw new InvalidOperationException("Expected start object token.");
         }
 
-        public unsafe readonly uint GetText(Token token, USpan<char> buffer)
+        public unsafe readonly int GetText(Token token, Span<char> destination)
         {
-            uint length = reader.PeekUTF8(token.position, token.length, buffer);
-            if (buffer[0] == '"')
+            int length = reader.PeekUTF8(token.position, token.length, destination);
+            if (destination[0] == '"')
             {
-                for (uint i = 0; i < length - 1; i++)
+                for (int i = 0; i < length - 1; i++)
                 {
-                    buffer[i] = buffer[i + 1];
+                    destination[i] = destination[i + 1];
                 }
 
                 return length - 2;
@@ -248,16 +248,16 @@ namespace Serialization.JSON
 
         public readonly double GetNumber(Token token)
         {
-            USpan<char> buffer = stackalloc char[(int)token.length];
-            uint length = GetText(token, buffer);
-            return double.Parse(buffer.GetSpan(length));
+            Span<char> buffer = stackalloc char[token.length];
+            int length = GetText(token, buffer);
+            return double.Parse(buffer.Slice(0, length));
         }
 
         public readonly bool GetBoolean(Token token)
         {
-            USpan<char> buffer = stackalloc char[(int)token.length];
-            uint length = GetText(token, buffer);
-            return buffer.GetSpan(length).SequenceEqual("true".AsSpan());
+            Span<char> buffer = stackalloc char[token.length];
+            int length = GetText(token, buffer);
+            return buffer.Slice(0, length).SequenceEqual("true".AsSpan());
         }
     }
 }

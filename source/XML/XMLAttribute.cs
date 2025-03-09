@@ -13,7 +13,7 @@ namespace Serialization.XML
         public readonly Text.Borrowed Value => value.Borrow();
         public readonly bool IsDisposed => name.IsDisposed;
 
-        public XMLAttribute(USpan<char> name, USpan<char> value)
+        public XMLAttribute(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
         {
             this.name = new(name);
             this.value = new(value);
@@ -34,9 +34,9 @@ namespace Serialization.XML
                 throw new();
             }
 
-            USpan<char> buffer = stackalloc char[256];
-            uint length = reader.GetText(nameToken, buffer);
-            name = new(buffer.GetSpan(length));
+            Span<char> buffer = stackalloc char[256];
+            int length = reader.GetText(nameToken, buffer);
+            name = new(buffer.Slice(0, length));
 
             Token valueToken = reader.ReadToken();
             if (valueToken.type != Token.Type.Text)
@@ -45,7 +45,7 @@ namespace Serialization.XML
             }
 
             length = reader.GetText(valueToken, buffer);
-            value = new(buffer.GetSpan(length));
+            value = new(buffer.Slice(0, length));
         }
 
         public readonly void Dispose()

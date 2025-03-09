@@ -41,7 +41,7 @@ namespace Serialization.XML
             writer.WriteUTF8('/');
         }
 
-        public readonly void WriteAttribute(USpan<char> name, USpan<char> value)
+        public readonly void WriteAttribute(System.Span<char> name, System.Span<char> value)
         {
             writer.WriteUTF8(name);
             writer.WriteUTF8('=');
@@ -59,7 +59,7 @@ namespace Serialization.XML
             writer.WriteUTF8('"');
         }
 
-        public readonly void WriteText(USpan<char> value)
+        public readonly void WriteText(System.Span<char> value)
         {
             writer.WriteUTF8(value);
         }

@@ -1,14 +1,14 @@
-﻿using Unmanaged;
+﻿using System;
 
 namespace Serialization.JSON
 {
     public readonly struct Token
     {
-        public readonly uint position;
-        public readonly uint length;
+        public readonly int position;
+        public readonly int length;
         public readonly Type type;
 
-        public Token(uint position, uint length, Type type)
+        public Token(int position, int length, Type type)
         {
             this.position = position;
             this.length = length;
@@ -22,9 +22,9 @@ namespace Serialization.JSON
 
         public unsafe readonly string ToString(JSONReader reader)
         {
-            USpan<char> buffer = stackalloc char[(int)length];
-            uint read = reader.GetText(this, buffer);
-            return buffer.GetSpan(read).ToString();
+            Span<char> buffer = stackalloc char[length];
+            int read = reader.GetText(this, buffer);
+            return buffer.Slice(0, read).ToString();
         }
 
         public enum Type : byte

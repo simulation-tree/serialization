@@ -9,7 +9,7 @@ namespace Serialization.JSON
     {
         private readonly Text name;
         private MemoryAddress value;
-        private uint length;
+        private int length;
         private Type type;
 
         public readonly bool IsText => type == Type.Text;
@@ -19,16 +19,16 @@ namespace Serialization.JSON
         public readonly bool IsArray => type == Type.Array;
         public readonly bool IsNull => type == Type.Null;
         public readonly Type PropertyType => type;
-        public readonly USpan<char> Name => name.AsSpan();
+        public readonly ReadOnlySpan<char> Name => name.AsSpan();
         public readonly bool IsDisposed => type == default || name.IsDisposed;
 
-        public unsafe USpan<char> Text
+        public unsafe ReadOnlySpan<char> Text
         {
             readonly get
             {
                 if (IsText)
                 {
-                    return new USpan<char>(value.Pointer, length / sizeof(char));
+                    return new(value.Pointer, length / sizeof(char));
                 }
                 else
                 {
@@ -39,7 +39,7 @@ namespace Serialization.JSON
             {
                 if (IsText)
                 {
-                    uint newLength = value.Length * sizeof(char);
+                    int newLength = value.Length * sizeof(char);
                     if (length < newLength)
                     {
                         MemoryAddress.Resize(ref this.value, newLength);
@@ -111,7 +111,7 @@ namespace Serialization.JSON
             }
         }
 
-        public JSONProperty(USpan<char> name, USpan<char> text)
+        public JSONProperty(ReadOnlySpan<char> name, ReadOnlySpan<char> text)
         {
             this.name = new(name);
             length = text.Length * sizeof(char);
@@ -120,7 +120,7 @@ namespace Serialization.JSON
             type = Type.Text;
         }
 
-        public JSONProperty(USpan<char> name, double number)
+        public JSONProperty(ReadOnlySpan<char> name, double number)
         {
             this.name = new(name);
             length = sizeof(double);
@@ -129,7 +129,7 @@ namespace Serialization.JSON
             type = Type.Number;
         }
 
-        public JSONProperty(USpan<char> name, bool boolean)
+        public JSONProperty(ReadOnlySpan<char> name, bool boolean)
         {
             this.name = new(name);
             length = sizeof(bool);
@@ -138,25 +138,25 @@ namespace Serialization.JSON
             type = Type.Boolean;
         }
 
-        public unsafe JSONProperty(USpan<char> name, JSONObject obj)
+        public unsafe JSONProperty(ReadOnlySpan<char> name, JSONObject obj)
         {
             this.name = new(name);
-            length = (uint)sizeof(nint);
+            length = sizeof(nint);
             value = MemoryAddress.Allocate(length);
             value.Write(0, obj.Address);
             type = Type.Object;
         }
 
-        public unsafe JSONProperty(USpan<char> name, JSONArray array)
+        public unsafe JSONProperty(ReadOnlySpan<char> name, JSONArray array)
         {
             this.name = new(name);
-            length = (uint)sizeof(nint);
+            length = sizeof(nint);
             value = MemoryAddress.Allocate(length);
             value.Write(0, array.Address);
             type = Type.Array;
         }
 
-        public JSONProperty(USpan<char> name)
+        public JSONProperty(ReadOnlySpan<char> name)
         {
             this.name = new(name);
             length = 0;
@@ -184,7 +184,7 @@ namespace Serialization.JSON
             type = default;
         }
 
-        public unsafe readonly void ToString(Text result, bool prefixName, USpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public unsafe readonly void ToString(Text result, bool prefixName, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
         {
             if (prefixName)
             {
@@ -203,9 +203,9 @@ namespace Serialization.JSON
             else if (type == Type.Number)
             {
                 double number = Number;
-                USpan<char> buffer = stackalloc char[64];
-                uint length = number.ToString(buffer);
-                result.Append(buffer.GetSpan(length));
+                Span<char> buffer = stackalloc char[64];
+                int length = number.ToString(buffer);
+                result.Append(buffer.Slice(0, length));
             }
             else if (type == Type.Boolean)
             {
@@ -245,7 +245,7 @@ namespace Serialization.JSON
             return result;
         }
 
-        public readonly bool TryGetText(out USpan<char> text)
+        public readonly bool TryGetText(out ReadOnlySpan<char> text)
         {
             if (IsText)
             {
