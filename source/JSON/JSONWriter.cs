@@ -39,7 +39,7 @@ namespace Serialization.JSON
             return result;
         }
 
-        public readonly System.Span<byte> AsSpan()
+        public readonly ReadOnlySpan<byte> AsSpan()
         {
             return writer.AsSpan();
         }

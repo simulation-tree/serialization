@@ -126,7 +126,7 @@ namespace Serialization.Tests
             using ByteReader reader = ByteReader.CreateFromUTF8(settings.ToString());
             JSONReader jsonReader = new(reader);
             jsonReader.ReadToken(); //{
-            System.Span<char> buffer = stackalloc char[32];
+            Span<char> buffer = stackalloc char[32];
             while (jsonReader.ReadToken(out Token token))
             {
                 if (token.type == Token.Type.Text)
@@ -325,10 +325,10 @@ namespace Serialization.Tests
             private Text name;
             private Text value;
 
-            public readonly System.Span<char> Name => name.AsSpan();
-            public readonly System.Span<char> Value => value.AsSpan();
+            public readonly ReadOnlySpan<char> Name => name.AsSpan();
+            public readonly ReadOnlySpan<char> Value => value.AsSpan();
 
-            public DummyJSONObject(System.Span<char> name, System.Span<char> value, int quantity, bool isRare)
+            public DummyJSONObject(ReadOnlySpan<char> name, ReadOnlySpan<char> value, int quantity, bool isRare)
             {
                 this.name = new(name);
                 this.value = new(value);

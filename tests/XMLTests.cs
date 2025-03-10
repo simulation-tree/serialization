@@ -120,7 +120,7 @@ namespace Serialization.Tests
         public void DeserializeFromBinary()
         {
             using ByteReader reader = ByteReader.CreateFromUTF8(XMLDummy);
-            System.Span<byte> byteStream = reader.GetBytes();
+            ReadOnlySpan<byte> byteStream = reader.GetBytes();
             using XMLNode projectXml = reader.ReadObject<XMLNode>();
             string str = projectXml.ToString();
             Console.WriteLine(str);

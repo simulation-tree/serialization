@@ -29,7 +29,7 @@ namespace Serialization.XML
             insideNode = false;
         }
 
-        public readonly System.Span<byte> AsSpan()
+        public readonly ReadOnlySpan<byte> AsSpan()
         {
             return reader.GetBytes();
         }
