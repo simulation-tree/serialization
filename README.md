@@ -1,8 +1,17 @@
 # Serialization
-Unmanaged library for working with JSON and XML using readers and writers with bytes directly.
-As well as intermediary types for representing objects within the supported formats.
 
-### JSON Reader and writer
+Unmanaged library for working with common human readable formats using readers and
+writers with bytes directly. As well as intermediary/high-level types for representing objects
+within the supported formats.
+
+### Supported formats
+
+- JSON
+- JSON 5
+- XML
+
+### JSON reader and writer
+
 The reader and writers are used to iteratively progress over data. How the data
 is stored should be known ahead of time (and can be tested).
 ```cs
@@ -18,7 +27,8 @@ ReadOnlySpan<char> propertyValue = reader.ReadText(out ReadOnlySpan<char> proper
 reader.ReadEndObject();
 ```
 
-### Generic JSON Object
+### Generic JSON object
+
 This is an alternative type thats able to represent a JSON object without the need
 for interacting with the reader or writer.
 ```cs
@@ -39,48 +49,43 @@ jsonObject.Add("inventory", inventory);
 
 jsonObject["age"].Number++;
 
-using UnmanagedList<char> buffer = new();
-jsonObject.ToString(buffer, "    ", true, true);
-ReadOnlySpan<char> jsonText = buffer.AsSpan();
-Console.WriteLine(jsonText.ToString());
+using Text jsonText = new();
+jsonObject.ToString(jsonText, "    ", true, true);
+Console.WriteLine(jsonText);
 ```
+
+JSON result:
 ```json
 {
-    "name":"John Doe",
-    "age":43,
-    "alive":true,
-    "inventory":[
+    "name": "John Doe",
+    "age": 43,
+    "alive": true,
+    "inventory": [
         "apples",
         "oranges",
         {
-            "name":"cherry",
-            "color":"red"
+            "name": "cherry",
+            "color": "red"
         }
     ]
 }
 ```
 
 ### JSON to C# and back
-The readers and writers have API for serializing/deserializing `IJSONObject` values.
-If the JSON object contains text values, then a `ReadOnlySpan<char>` will be expected
-to be stored inside the value type. Using types like `string` and `List<char>` makes the type
-not acceptable because of the unmanaged requirement, an `UnmanagedArray<char>` is used instead.
+
+The readers and writers have API for serializing/deserializing `IJSONObject` values:
 ```cs
 public struct Player : IJSONObject, IDisposable
 {
     public int hp;
     public bool alive;
 
-    private UnmanagedArray<char> name;
+    private Text name;
 
     public readonly Span<char> Name
     {
         get => name.AsSpan();
-        set
-        {
-            name.Resize(value.Length);
-            value.CopyTo(name.AsSpan());
-        }
+        set => name.CopyFrom(value);
     }
 
     public Player(int hp, bool alive, ReadOnlySpan<char> name)
@@ -112,15 +117,17 @@ public struct Player : IJSONObject, IDisposable
 }
 
 byte[] jsonBytes = File.ReadAllBytes("player.json");
-using JSONReader reader = new(jsonBytes);
-using Player player = reader.ReadObject<Player>();
+using ByteReader reader = new(jsonBytes);
+JSONReader jsonReader = new(reader);
+using Player player = jsonReader.ReadObject<Player>();
 ReadOnlySpan<char> name = player.Name;
 ```
 
 ### XML
+
 XML is supported through the `XMLNode` type, which can be created from either a byte or a char array.
 Each node has a name, content, and a list of children. Attributes can be read using the indexer.
-```csharp
+```cs
 byte[] xmlData = File.ReadAllBytes("solution.csproj");
 using XMLNode project = new(xmlData);
 XMLAttribute sdk = project["Sdk"];
