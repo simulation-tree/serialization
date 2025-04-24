@@ -82,7 +82,7 @@ namespace Serialization.XML
                     //skip
                     position += cLength;
                 }
-                else if (char.IsLetterOrDigit(c) || !IsWhitespace(c))
+                else if (char.IsLetterOrDigit(c) || !SharedFunctions.IsWhitespace(c))
                 {
                     int start = position;
                     position += cLength;
@@ -185,12 +185,6 @@ namespace Serialization.XML
             int length = GetText(token, buffer);
             destination.Append(buffer.Slice(0, length));
             return length;
-        }
-
-        private static bool IsWhitespace(char c)
-        {
-            const char BOM = (char)65279;
-            return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == BOM;
         }
     }
 }

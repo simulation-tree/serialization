@@ -99,7 +99,7 @@ namespace Serialization.JSON
             Span<char> buffer = stackalloc char[32];
             int length = number.ToString(buffer);
 
-            last = new(writer.Position, sizeof(char) * length, Token.Type.Number);
+            last = new(writer.Position, sizeof(char) * length, Token.Type.Text);
             writer.WriteUTF8(buffer.Slice(0, length));
         }
 
@@ -107,19 +107,19 @@ namespace Serialization.JSON
         {
             if (value)
             {
-                last = new(writer.Position, sizeof(char) * 4, Token.Type.True);
+                last = new(writer.Position, sizeof(char) * 4, Token.Type.Text);
                 writer.WriteUTF8("true".AsSpan());
             }
             else
             {
-                last = new(writer.Position, sizeof(char) * 5, Token.Type.False);
+                last = new(writer.Position, sizeof(char) * 5, Token.Type.Text);
                 writer.WriteUTF8("false".AsSpan());
             }
         }
 
         public void WriteNull()
         {
-            last = new(writer.Position, sizeof(char) * 4, Token.Type.Null);
+            last = new(writer.Position, sizeof(char) * 4, Token.Type.Text);
             writer.WriteUTF8("null".AsSpan());
         }
 

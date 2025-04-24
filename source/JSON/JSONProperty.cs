@@ -55,28 +55,12 @@ namespace Serialization.JSON
             }
         }
 
-        public readonly ref double Number
-        {
-            get
-            {
-                return ref value.Read<double>();
-            }
-        }
+        public readonly ref double Number => ref value.Read<double>();
+        public readonly ref bool Boolean => ref value.Read<bool>();
 
-        public readonly ref bool Boolean
+        public readonly JSONObject Object
         {
-            get
-            {
-                return ref value.Read<bool>();
-            }
-        }
-
-        public readonly unsafe JSONObject Object
-        {
-            get
-            {
-                return value.Read<JSONObject>();
-            }
+            get => value.Read<JSONObject>();
             set
             {
                 if (IsObject)
@@ -91,12 +75,9 @@ namespace Serialization.JSON
             }
         }
 
-        public readonly unsafe JSONArray Array
+        public readonly JSONArray Array
         {
-            get
-            {
-                return value.Read<JSONArray>();
-            }
+            get => value.Read<JSONArray>();
             set
             {
                 if (IsArray)
@@ -236,13 +217,43 @@ namespace Serialization.JSON
             }
         }
 
-        public readonly override string ToString()
+        public unsafe readonly override string ToString()
         {
-            Text buffer = new(0);
-            ToString(buffer, true);
-            string result = buffer.ToString();
-            buffer.Dispose();
-            return result;
+            if (type == Type.Text)
+            {
+                return Text.ToString();
+            }
+            else if (type == Type.Number)
+            {
+                double number = Number;
+                Span<char> buffer = stackalloc char[64];
+                int length = number.ToString(buffer);
+                return buffer.Slice(0, length).ToString();
+            }
+            else if (type == Type.Boolean)
+            {
+                return Boolean ? "true" : "false";
+            }
+            else if (type == Type.Object)
+            {
+                void* ptr = (void*)value.Read<nint>();
+                JSONObject obj = new(ptr);
+                return obj.ToString();
+            }
+            else if (type == Type.Array)
+            {
+                void* ptr = (void*)value.Read<nint>();
+                JSONArray array = new(ptr);
+                return array.ToString();
+            }
+            else if (type == Type.Null)
+            {
+                return "null";
+            }
+            else
+            {
+                throw new InvalidOperationException($"Property is of an unknown type: {type}");
+            }
         }
 
         public readonly bool TryGetText(out ReadOnlySpan<char> text)

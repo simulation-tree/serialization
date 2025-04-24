@@ -453,94 +453,93 @@ namespace Serialization.JSON
         {
             value = Implementation.Allocate();
             JSONReader jsonReader = new(reader);
-            if (jsonReader.PeekToken(out Token nextToken))
+            if (jsonReader.PeekToken(out Token nextToken, out int readBytes))
             {
                 if (nextToken.type == Token.Type.StartObject)
                 {
-                    jsonReader.ReadToken(out _);
+                    //start of object
+                    reader.Advance(readBytes);
                 }
             }
 
-            ParseObject(jsonReader, reader, this);
-
-            static void ParseObject(JSONReader jsonReader, ByteReader reader, JSONObject jsonObject)
+            using Text nameTextBuffer = new(256);
+            using Text nextTextBuffer = new(256);
+            while (jsonReader.ReadToken(out Token token))
             {
-                Span<char> buffer = stackalloc char[256];
-                while (jsonReader.ReadToken(out Token token))
+                if (token.type == Token.Type.Text)
                 {
-                    if (token.type == Token.Type.Text)
+                    int capacity = token.length * 4;
+                    if (nameTextBuffer.Length < capacity)
                     {
-                        int length = jsonReader.GetText(token, buffer);
-                        if (jsonReader.ReadToken(out Token nextToken))
+                        nameTextBuffer.SetLength(capacity);
+                    }
+
+                    int nameTextLength = jsonReader.GetText(token, nameTextBuffer.AsSpan());
+                    Span<char> name = nameTextBuffer.Slice(0, nameTextLength);
+                    if (jsonReader.ReadToken(out nextToken))
+                    {
+                        int nextCapacity = nextToken.length * 4;
+                        if (nextTextBuffer.Length < nextCapacity)
                         {
-                            ReadOnlySpan<char> nameSpan = buffer.Slice(0, length);
-                            if (nameSpan.Length > 0 && nameSpan[0] == '"')
-                            {
-                                nameSpan = nameSpan.Slice(1, nameSpan.Length - 2);
-                            }
+                            nextTextBuffer.SetLength(nextCapacity);
+                        }
 
-                            if (nextToken.type == Token.Type.True)
+                        if (nextToken.type == Token.Type.Text)
+                        {
+                            int nextTextLength = jsonReader.GetText(nextToken, nextTextBuffer.AsSpan());
+                            ReadOnlySpan<char> nextText = nextTextBuffer.Slice(0, nextTextLength);
+                            if (double.TryParse(nextText, out double number))
                             {
-                                jsonObject.Add(nameSpan, true);
+                                Add(name, number);
                             }
-                            else if (nextToken.type == Token.Type.False)
+                            else if (nextText.SequenceEqual("true"))
                             {
-                                jsonObject.Add(nameSpan, false);
+                                Add(name, true);
                             }
-                            else if (nextToken.type == Token.Type.Null)
+                            else if (nextText.SequenceEqual("false"))
                             {
-                                jsonObject.AddNull(nameSpan);
+                                Add(name, false);
                             }
-                            else if (nextToken.type == Token.Type.Number)
+                            else if (nextText.SequenceEqual("null"))
                             {
-                                jsonObject.Add(nameSpan, jsonReader.GetNumber(nextToken));
-                            }
-                            else if (nextToken.type == Token.Type.Text)
-                            {
-                                Text textBuffer = new(nextToken.length * 4);
-                                Span<char> bufferSpan = textBuffer.AsSpan();
-                                int textLength = jsonReader.GetText(nextToken, bufferSpan);
-                                ReadOnlySpan<char> text = bufferSpan.Slice(0, textLength);
-                                if (text.Length > 0 && text[0] == '"')
-                                {
-                                    text = text.Slice(1, text.Length - 2);
-                                }
-
-                                jsonObject.Add(nameSpan, text);
-                                textBuffer.Dispose();
-                            }
-                            else if (nextToken.type == Token.Type.StartObject)
-                            {
-                                JSONObject newObject = reader.ReadObject<JSONObject>();
-                                jsonObject.Add(nameSpan, newObject);
-                            }
-                            else if (nextToken.type == Token.Type.StartArray)
-                            {
-                                JSONArray newArray = reader.ReadObject<JSONArray>();
-                                jsonObject.Add(nameSpan, newArray);
-                            }
-                            else if (nextToken.type == Token.Type.EndObject)
-                            {
-                                break;
+                                AddNull(name);
                             }
                             else
                             {
-                                throw new InvalidOperationException($"Invalid JSON token at position {nextToken.position}");
+                                Add(name, nextText);
                             }
+                        }
+                        else if (nextToken.type == Token.Type.StartObject)
+                        {
+                            JSONObject newObject = reader.ReadObject<JSONObject>();
+                            Add(name, newObject);
+                        }
+                        else if (nextToken.type == Token.Type.StartArray)
+                        {
+                            JSONArray newArray = reader.ReadObject<JSONArray>();
+                            Add(name, newArray);
+                        }
+                        else if (nextToken.type == Token.Type.EndObject)
+                        {
+                            break;
                         }
                         else
                         {
-                            throw new InvalidOperationException($"Invalid JSON token at position {token.position}, expected value.");
+                            throw new InvalidOperationException($"Invalid JSON token at position {nextToken.position}");
                         }
-                    }
-                    else if (token.type == Token.Type.EndObject)
-                    {
-                        break;
                     }
                     else
                     {
-                        throw new InvalidOperationException($"Invalid JSON token at position {token.position}");
+                        throw new InvalidOperationException($"No succeeding token available after {name.ToString()}");
                     }
+                }
+                else if (token.type == Token.Type.EndObject)
+                {
+                    break;
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Unexpected token `{token.type}`, expected }} or another text token");
                 }
             }
         }

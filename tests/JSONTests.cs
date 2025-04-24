@@ -1,3 +1,4 @@
+using Collections.Generic;
 using Serialization.JSON;
 using System;
 using System.Text.Json;
@@ -9,6 +10,103 @@ namespace Serialization.Tests
 {
     public class JSONTests : UnmanagedTests
     {
+        [Test]
+        public void ParseTokens()
+        {
+            JsonObject json = new()
+            {
+                { "name", "John Programming" },
+                { "age", 42 },
+                { "isAlive", true },
+                {
+                    "address", new JsonObject
+                    {
+                        { "streetAddress", "21 2nd Street" },
+                        { "city", "New York" },
+                        { "state", "NY" },
+                        { "postalCode", "10021-3100" }
+                    }
+                }
+            };
+
+            string jsonString = json.ToString();
+            using ByteReader reader = ByteReader.CreateFromUTF8(jsonString);
+            JSONReader jsonReader = new(reader);
+            using List<Token> tokens = new();
+            while (jsonReader.ReadToken(out Token token))
+            {
+                tokens.Add(token);
+                Console.WriteLine($"{token.type} = {token.ToString(jsonReader)}");
+            }
+
+            Assert.That(tokens.Count, Is.EqualTo(19));
+            Assert.That(tokens[0].type == Token.Type.StartObject);
+            Assert.That(tokens[1].type == Token.Type.Text);     //name
+            Assert.That(tokens[2].type == Token.Type.Text);     //John Doe
+            Assert.That(tokens[3].type == Token.Type.Text);     //age
+            Assert.That(tokens[4].type == Token.Type.Text);     //42
+            Assert.That(tokens[5].type == Token.Type.Text);     //isAlive
+            Assert.That(tokens[6].type == Token.Type.Text);     //true
+            Assert.That(tokens[7].type == Token.Type.Text);     //address
+            Assert.That(tokens[8].type == Token.Type.StartObject);
+            Assert.That(tokens[9].type == Token.Type.Text);     //streetAddress
+            Assert.That(tokens[10].type == Token.Type.Text);    //21 2nd Street
+            Assert.That(tokens[11].type == Token.Type.Text);    //city
+            Assert.That(tokens[12].type == Token.Type.Text);    //New York
+            Assert.That(tokens[13].type == Token.Type.Text);    //state
+            Assert.That(tokens[14].type == Token.Type.Text);    //NY
+            Assert.That(tokens[15].type == Token.Type.Text);    //postalCode
+            Assert.That(tokens[16].type == Token.Type.Text);    //10021-3100
+            Assert.That(tokens[17].type == Token.Type.EndObject);
+            Assert.That(tokens[18].type == Token.Type.EndObject);
+        }
+
+        [Test]
+        public void ParseJSON5Tokens()
+        {
+            string source = @"{
+                name: 'John Programming',
+                age: 42,
+                isAlive: true,
+                address: {
+                    streetAddress: '21 2nd Street',
+                    city: 'New York',
+                    state: 'NY',
+                    postalCode: '10021-3100'
+                }
+            }";
+
+            using ByteReader reader = ByteReader.CreateFromUTF8(source);
+            JSONReader jsonReader = new(reader);
+            using List<Token> tokens = new();
+            while (jsonReader.ReadToken(out Token token))
+            {
+                tokens.Add(token);
+                Console.WriteLine($"{token.type} = {token.ToString(jsonReader)}");
+            }
+
+            Assert.That(tokens.Count, Is.EqualTo(19));
+            Assert.That(tokens[0].type == Token.Type.StartObject);
+            Assert.That(tokens[1].type == Token.Type.Text);     //name
+            Assert.That(tokens[2].type == Token.Type.Text);     //John Doe
+            Assert.That(tokens[3].type == Token.Type.Text);     //age
+            Assert.That(tokens[4].type == Token.Type.Text);     //42
+            Assert.That(tokens[5].type == Token.Type.Text);     //isAlive
+            Assert.That(tokens[6].type == Token.Type.Text);     //true
+            Assert.That(tokens[7].type == Token.Type.Text);     //address
+            Assert.That(tokens[8].type == Token.Type.StartObject);
+            Assert.That(tokens[9].type == Token.Type.Text);     //streetAddress
+            Assert.That(tokens[10].type == Token.Type.Text);    //21 2nd Street
+            Assert.That(tokens[11].type == Token.Type.Text);    //city
+            Assert.That(tokens[12].type == Token.Type.Text);    //New York
+            Assert.That(tokens[13].type == Token.Type.Text);    //state
+            Assert.That(tokens[14].type == Token.Type.Text);    //NY
+            Assert.That(tokens[15].type == Token.Type.Text);    //postalCode
+            Assert.That(tokens[16].type == Token.Type.Text);    //10021-3100
+            Assert.That(tokens[17].type == Token.Type.EndObject);
+            Assert.That(tokens[18].type == Token.Type.EndObject);
+        }
+
         [Test]
         public void ReadSampleJSON()
         {
@@ -138,24 +236,22 @@ namespace Serialization.Tests
                     {
                         length = jsonReader.GetText(next, buffer);
                         string value = buffer.Slice(0, length).ToString();
-                        settingsList.Add((name, value));
+                        if (double.TryParse(value, out double number))
+                        {
+                            settingsList.Add((name, number));
+                        }
+                        else if (bool.TryParse(value, out bool boolean))
+                        {
+                            settingsList.Add((name, boolean));
+                        }
+                        else
+                        {
+                            settingsList.Add((name, value));
+                        }
                     }
-                    else if (next.type == Token.Type.Number)
+                    else
                     {
-                        double value = jsonReader.GetNumber(next);
-                        settingsList.Add((name, value));
-                    }
-                    else if (next.type == Token.Type.True)
-                    {
-                        settingsList.Add((name, true));
-                    }
-                    else if (next.type == Token.Type.False)
-                    {
-                        settingsList.Add((name, false));
-                    }
-                    else if (next.type == Token.Type.Null)
-                    {
-                        settingsList.Add((name, null));
+                        throw new Exception($"Expected text token, but got {next.type}");
                     }
                 }
                 else
@@ -181,7 +277,8 @@ namespace Serialization.Tests
         {
             JsonObject json = new();
             JsonArray inventory = new();
-            for (uint i = 0; i < 32; i++)
+            const int ItemCount = 32;
+            for (uint i = 0; i < ItemCount; i++)
             {
                 JsonObject item = new();
                 item.Add("name", $"Item {i}");
@@ -196,7 +293,7 @@ namespace Serialization.Tests
             using ByteReader reader = ByteReader.CreateFromUTF8(jsonString);
             JSONObject obj = reader.ReadObject<JSONObject>();
             JSONArray array = obj.GetArray("inventory");
-            Assert.That(array.Count, Is.EqualTo(32));
+            Assert.That(array.Count, Is.EqualTo(ItemCount));
             string otherString = obj.ToString();
             Assert.That(jsonString, Is.EqualTo(otherString));
             obj.Dispose();

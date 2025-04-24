@@ -211,55 +211,54 @@ namespace Serialization.JSON
         void ISerializable.Read(ByteReader reader)
         {
             value = Implementation.Allocate();
-            ParseArray(new(reader), reader, this);
-            static void ParseArray(JSONReader jsonReader, ByteReader reader, JSONArray jsonArray)
+            using Text textBuffer = new(256);
+            JSONReader jsonReader = new(reader);
+            while (jsonReader.ReadToken(out Token token))
             {
-                while (jsonReader.ReadToken(out Token token))
+                if (token.type == Token.Type.Text)
                 {
-                    if (token.type == Token.Type.True)
+                    int capacity = token.length * 4;
+                    if (textBuffer.Length < capacity)
                     {
-                        jsonArray.Add(jsonReader.GetBoolean(token));
+                        textBuffer.SetLength(capacity);
                     }
-                    else if (token.type == Token.Type.False)
-                    {
-                        jsonArray.Add(jsonReader.GetBoolean(token));
-                    }
-                    else if (token.type == Token.Type.Null)
-                    {
-                        jsonArray.AddNull();
-                    }
-                    else if (token.type == Token.Type.Number)
-                    {
-                        jsonArray.Add(jsonReader.GetNumber(token));
-                    }
-                    else if (token.type == Token.Type.Text)
-                    {
-                        Text textBuffer = new(token.length * 4);
-                        Span<char> bufferSpan = textBuffer.AsSpan();
-                        int textLength = jsonReader.GetText(token, bufferSpan);
-                        Span<char> text = bufferSpan.Slice(0, textLength);
-                        if (text.Length > 0 && text[0] == '"')
-                        {
-                            text = text.Slice(1, text.Length - 2);
-                        }
 
-                        jsonArray.Add(text);
-                        textBuffer.Dispose();
-                    }
-                    else if (token.type == Token.Type.StartObject)
+                    int textLength = jsonReader.GetText(token, textBuffer.AsSpan());
+                    Span<char> text = textBuffer.Slice(0, textLength);
+                    if (double.TryParse(text, out double number))
                     {
-                        JSONObject newObject = reader.ReadObject<JSONObject>();
-                        jsonArray.Add(newObject);
+                        Add(number);
                     }
-                    else if (token.type == Token.Type.StartArray)
+                    else if (text.SequenceEqual("true"))
                     {
-                        JSONArray newArray = reader.ReadObject<JSONArray>();
-                        jsonArray.Add(newArray);
+                        Add(true);
                     }
-                    else if (token.type == Token.Type.EndArray)
+                    else if (text.SequenceEqual("false"))
                     {
-                        break;
+                        Add(false);
                     }
+                    else if (text.SequenceEqual("null"))
+                    {
+                        AddNull();
+                    }
+                    else
+                    {
+                        Add(text);
+                    }
+                }
+                else if (token.type == Token.Type.StartObject)
+                {
+                    JSONObject newObject = reader.ReadObject<JSONObject>();
+                    Add(newObject);
+                }
+                else if (token.type == Token.Type.StartArray)
+                {
+                    JSONArray newArray = reader.ReadObject<JSONArray>();
+                    Add(newArray);
+                }
+                else if (token.type == Token.Type.EndArray)
+                {
+                    break;
                 }
             }
         }

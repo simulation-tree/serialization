@@ -35,10 +35,6 @@ namespace Serialization.JSON
             StartArray,
             EndArray,
             Text,
-            Number,
-            True,
-            False,
-            Null
         }
     }
 }
