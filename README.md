@@ -1,5 +1,7 @@
 # Serialization
 
+[![Test](https://github.com/simulation-tree/serialization/actions/workflows/test.yml/badge.svg)](https://github.com/simulation-tree/serialization/actions/workflows/test.yml)
+
 Native library for working with common human readable formats using readers and writers.
 With high-level types available for representing objects.
 
