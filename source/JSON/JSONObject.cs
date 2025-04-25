@@ -2,7 +2,6 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text.Json.Nodes;
 using Unmanaged;
 
 namespace Serialization.JSON
@@ -150,17 +149,22 @@ namespace Serialization.JSON
             return value;
         }
 
-        public readonly void ToString(Text result, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(Text result, SerializationSettings settings = default)
+        {
+            ToString(result, settings, 0);
+        }
+
+        internal readonly void ToString(Text result, SerializationSettings settings, byte depth)
         {
             ThrowIfDisposed();
 
             result.Append('{');
             if (jsonObject->properties.Count > 0)
             {
-                NewLine();
+                settings.NewLine(result);
                 for (int i = 0; i <= depth; i++)
                 {
-                    Indent(indent);
+                    settings.Indent(result);
                 }
 
                 int position = 0;
@@ -169,7 +173,11 @@ namespace Serialization.JSON
                     ref JSONProperty property = ref jsonObject->properties[position];
                     byte childDepth = depth;
                     childDepth++;
-                    property.ToString(result, true, indent, cr, lf, childDepth);
+                    result.Append('\"');
+                    result.Append(property.Name);
+                    result.Append('\"');
+                    result.Append(':');
+                    property.ToString(result, settings, childDepth);
                     position++;
 
                     if (position == Count)
@@ -178,39 +186,21 @@ namespace Serialization.JSON
                     }
 
                     result.Append(',');
-                    NewLine();
+                    settings.NewLine(result);
                     for (int i = 0; i <= depth; i++)
                     {
-                        Indent(indent);
+                        settings.Indent(result);
                     }
                 }
 
-                NewLine();
+                settings.NewLine(result);
                 for (int i = 0; i < depth; i++)
                 {
-                    Indent(indent);
+                    settings.Indent(result);
                 }
             }
 
             result.Append('}');
-
-            void NewLine()
-            {
-                if (cr)
-                {
-                    result.Append('\r');
-                }
-
-                if (lf)
-                {
-                    result.Append('\n');
-                }
-            }
-
-            void Indent(ReadOnlySpan<char> indent)
-            {
-                result.Append(indent);
-            }
         }
 
         public readonly override string ToString()

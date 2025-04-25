@@ -266,17 +266,14 @@ namespace Serialization.JSON
             type = default;
         }
 
-        public readonly void ToString(Text result, bool prefixName, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(Text result, SerializationSettings settings = default)
+        {
+            ToString(result, settings, 0);
+        }
+
+        internal readonly void ToString(Text result, SerializationSettings settings, byte depth)
         {
             ThrowIfDisposed();
-
-            if (prefixName)
-            {
-                result.Append('\"');
-                result.Append(Name);
-                result.Append('\"');
-                result.Append(':');
-            }
 
             if (type == Type.Text)
             {
@@ -298,12 +295,12 @@ namespace Serialization.JSON
             else if (type == Type.Object)
             {
                 JSONObject jsonObject = value.Read<JSONObject>();
-                jsonObject.ToString(result, indent, cr, lf, depth);
+                jsonObject.ToString(result, settings, depth);
             }
             else if (type == Type.Array)
             {
                 JSONArray jsonArray = value.Read<JSONArray>();
-                jsonArray.ToString(result, indent, cr, lf, depth);
+                jsonArray.ToString(result, settings, depth);
             }
             else if (type == Type.Null)
             {

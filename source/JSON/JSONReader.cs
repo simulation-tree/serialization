@@ -30,6 +30,11 @@ namespace Serialization.JSON
             this.reader = reader;
         }
 
+        public readonly bool PeekToken(out Token token)
+        {
+            return PeekToken(out token, out _);
+        }
+
         public readonly bool PeekToken(out Token token, out int readBytes)
         {
             token = default;
@@ -193,11 +198,11 @@ namespace Serialization.JSON
                 else if (token.type == Token.Type.Text)
                 {
                     int length = GetText(token, buffer);
-                    if (buffer.Slice(0, length).SequenceEqual("true"))
+                    if (buffer.Slice(0, length).SequenceEqual(Token.True))
                     {
                         return true;
                     }
-                    else if (buffer.Slice(0, length).SequenceEqual("false"))
+                    else if (buffer.Slice(0, length).SequenceEqual(Token.False))
                     {
                         return false;
                     }
@@ -242,7 +247,7 @@ namespace Serialization.JSON
             throw new InvalidOperationException("Expected start object token.");
         }
 
-        public unsafe readonly int GetText(Token token, Span<char> destination)
+        public readonly int GetText(Token token, Span<char> destination)
         {
             return reader.PeekUTF8(token.position, token.length, destination);
         }
@@ -258,7 +263,7 @@ namespace Serialization.JSON
         {
             Span<char> buffer = stackalloc char[token.length];
             int length = GetText(token, buffer);
-            return buffer.Slice(0, length).SequenceEqual("true".AsSpan());
+            return buffer.Slice(0, length).SequenceEqual(Token.True);
         }
     }
 }

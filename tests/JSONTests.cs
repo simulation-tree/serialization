@@ -207,7 +207,7 @@ namespace Serialization.Tests
             jsonObject["age"].Number++;
 
             using Text buffer = new();
-            jsonObject.ToString(buffer, "    ".AsSpan(), true, true);
+            jsonObject.ToString(buffer, SerializationSettings.PrettyPrinted);
             Console.WriteLine(buffer.ToString());
         }
 
@@ -324,11 +324,51 @@ namespace Serialization.Tests
         public void SerializeFromStruct()
         {
             using DummyJSONObject dummy = new("abacus", "212-4", 32, false);
-            using JSONWriter writer = JSONWriter.Create();
+            using JSONWriter writer = new();
             writer.WriteObject(dummy);
-            string jsonString = writer.ToString();
-            Console.WriteLine(jsonString);
-            Assert.That(jsonString, Is.EqualTo("{\"name\":\"abacus\",\"value\":\"212-4\",\"quantity\":32,\"isRare\":false}"));
+            string jsonSource = writer.ToString();
+            Assert.That(jsonSource, Is.EqualTo("{\"name\":\"abacus\",\"value\":\"212-4\",\"quantity\":32,\"isRare\":false}"));
+        }
+
+        [Test]
+        public void WriteArrayToJSON5()
+        {
+            using Player player = new("playerName", 100, "red");
+            player.AddItem("abacus", "212-4", 32, false);
+            player.AddItem("itemId", "forgot what this is", 1, true);
+            using JSONWriter jsonWriter = new(SerializationSettings.JSON5PrettyPrinted);
+            jsonWriter.WriteObject(player);
+            string jsonSource = jsonWriter.ToString();
+
+            using ByteReader reader = ByteReader.CreateFromUTF8(jsonSource);
+            JSONReader jsonReader = new(reader);
+            using Player readPlayer = jsonReader.ReadObject<Player>();
+            Assert.That(readPlayer.Name.SequenceEqual(player.Name), Is.True);
+            Assert.That(readPlayer.HP, Is.EqualTo(player.HP));
+            Assert.That(readPlayer.Items.Length, Is.EqualTo(player.Items.Length));
+            Assert.That(readPlayer.Color, Is.EqualTo(player.Color));
+
+            string expectedSource =
+@"{
+    name: 'playerName',
+    hp: 100,
+    items: [
+        {
+            name: 'abacus',
+            value: '212-4',
+            quantity: 32,
+            isRare: false
+        },
+        {
+            name: 'itemId',
+            value: 'forgot what this is',
+            quantity: 1,
+            isRare: true
+        }
+    ],
+    htmlColor: 'red'
+}";
+            Assert.That(jsonSource, Is.EqualTo(expectedSource));
         }
 
         [Test]
@@ -449,6 +489,7 @@ namespace Serialization.Tests
 
             void IJSONSerializable.Read(JSONReader reader)
             {
+                //for all properties, skip reading the name, and read the value directly (assumes layout is perfect)
                 Span<char> buffer = stackalloc char[64];
                 reader.ReadToken();
                 int length = reader.ReadText(buffer);
@@ -462,12 +503,88 @@ namespace Serialization.Tests
                 isRare = reader.ReadBoolean();
             }
 
-            readonly void IJSONSerializable.Write(JSONWriter writer)
+            readonly void IJSONSerializable.Write(ref JSONWriter writer)
             {
                 writer.WriteProperty(nameof(name), name.AsSpan());
                 writer.WriteProperty(nameof(value), value.AsSpan());
                 writer.WriteProperty(nameof(quantity), quantity);
                 writer.WriteProperty(nameof(isRare), isRare);
+            }
+        }
+
+        public struct Player : IJSONSerializable, IDisposable
+        {
+            private Text name;
+            private int hp;
+            private List<DummyJSONObject> items;
+            private ASCIIText16 htmlColor;
+
+            public readonly ReadOnlySpan<char> Name => name.AsSpan();
+            public readonly int HP => hp;
+            public readonly ReadOnlySpan<DummyJSONObject> Items => items.AsSpan();
+            public readonly ASCIIText16 Color => htmlColor;
+
+            public Player(ReadOnlySpan<char> name, int hp, ReadOnlySpan<char> htmlColor)
+            {
+                this.name = new(name);
+                this.hp = hp;
+                this.items = new();
+                this.htmlColor = new(htmlColor);
+            }
+
+            public void Dispose()
+            {
+                for (int i = 0; i < items.Count; i++)
+                {
+                    items[i].Dispose();
+                }
+
+                items.Dispose();
+                name.Dispose();
+            }
+
+            public readonly void AddItem(ReadOnlySpan<char> name, ReadOnlySpan<char> value, int quantity, bool isRare)
+            {
+                items.Add(new(name, value, quantity, isRare));
+            }
+
+            void IJSONSerializable.Read(JSONReader reader)
+            {
+                reader.ReadToken(); //name
+                Span<char> buffer = stackalloc char[64];
+                int nameLength = reader.ReadText(buffer);
+                name = new(buffer.Slice(0, nameLength));
+
+                reader.ReadToken(); //name
+                hp = (int)reader.ReadNumber();
+
+                items = new();
+                reader.ReadToken(); //name
+                reader.ReadToken(); //[
+                while (reader.PeekToken(out Token token))
+                {
+                    if (token.type == Token.Type.EndArray)
+                    {
+                        break;
+                    }
+
+                    DummyJSONObject item = reader.ReadObject<DummyJSONObject>();
+                    items.Add(item);
+                }
+
+                reader.ReadToken(); //]
+
+                reader.ReadToken(); //name
+                int colorLength = reader.ReadText(buffer);
+                htmlColor = new(buffer.Slice(0, colorLength));
+            }
+
+            readonly void IJSONSerializable.Write(ref JSONWriter writer)
+            {
+                writer.WriteProperty(nameof(name), name.AsSpan());
+                writer.WriteProperty(nameof(hp), hp);
+                writer.WriteArray<DummyJSONObject>(nameof(items), items.AsSpan());
+                writer.WriteProperty(nameof(htmlColor), htmlColor.ToString());
             }
         }
     }
