@@ -7,27 +7,29 @@ namespace Serialization.JSON
     [SkipLocalsInit]
     public struct JSONWriter : IDisposable
     {
+        private readonly SerializationSettings settings;
         private readonly ByteWriter writer;
         private Token last;
+        private int depth;
 
         public readonly bool IsDisposed => writer.IsDisposed;
         public readonly int Position => writer.Position;
 
-#if NET
-        [Obsolete("Default constructor not available", true)]
         public JSONWriter()
         {
-            throw new NotImplementedException();
-        }
-#endif
-
-        public JSONWriter(ByteWriter writer)
-        {
-            this.writer = writer;
+            settings = default;
+            writer = new ByteWriter(4);
             last = default;
         }
 
-        public unsafe override readonly string ToString()
+        public JSONWriter(SerializationSettings settings)
+        {
+            this.settings = settings;
+            this.writer = new ByteWriter(4);
+            last = default;
+        }
+
+        public override readonly string ToString()
         {
             ByteReader reader = new(AsSpan());
             Text tempBuffer = new(Position * 2);
@@ -51,12 +53,32 @@ namespace Serialization.JSON
 
         public void WriteStartObject()
         {
+            if (last.type == Token.Type.EndObject)
+            {
+                writer.WriteUTF8(',');
+                settings.NewLine(writer);
+            }
+
+            for (int i = 0; i < depth; i++)
+            {
+                settings.Indent(writer);
+            }
+
             last = new(writer.Position, sizeof(char), Token.Type.StartObject);
             writer.WriteUTF8('{');
+            settings.NewLine(writer);
+            depth++;
         }
 
         public void WriteEndObject()
         {
+            depth--;
+            settings.NewLine(writer);
+            for (int i = 0; i < depth; i++)
+            {
+                settings.Indent(writer);
+            }
+
             last = new(writer.Position, sizeof(char), Token.Type.EndObject);
             writer.WriteUTF8('}');
         }
@@ -65,20 +87,29 @@ namespace Serialization.JSON
         {
             last = new(writer.Position, sizeof(char), Token.Type.StartArray);
             writer.WriteUTF8('[');
+            settings.NewLine(writer);
+            depth++;
         }
 
         public void WriteEndArray()
         {
+            depth--;
+            settings.NewLine(writer);
+            for (int i = 0; i < depth; i++)
+            {
+                settings.Indent(writer);
+            }
+
             last = new(writer.Position, sizeof(char), Token.Type.EndArray);
             writer.WriteUTF8(']');
         }
 
-        private void WriteText(ReadOnlySpan<char> value)
+        private void WriteText(ReadOnlySpan<char> value, SerializationSettings settings)
         {
             last = new(writer.Position, sizeof(char) * (2 + value.Length), Token.Type.Text);
-            writer.WriteUTF8('"');
+            settings.WriteTextQuoteCharacter(writer);
             writer.WriteUTF8(value);
-            writer.WriteUTF8('"');
+            settings.WriteTextQuoteCharacter(writer);
         }
 
         /// <summary>
@@ -89,9 +120,10 @@ namespace Serialization.JSON
             if (last.type != Token.Type.StartObject && last.type != Token.Type.StartArray && last.type != Token.Type.Unknown)
             {
                 writer.WriteUTF8(',');
+                settings.NewLine(writer);
             }
 
-            WriteText(value);
+            WriteText(value, settings);
         }
 
         public void WriteNumber(double number)
@@ -99,7 +131,7 @@ namespace Serialization.JSON
             Span<char> buffer = stackalloc char[32];
             int length = number.ToString(buffer);
 
-            last = new(writer.Position, sizeof(char) * length, Token.Type.Number);
+            last = new(writer.Position, sizeof(char) * length, Token.Type.Text);
             writer.WriteUTF8(buffer.Slice(0, length));
         }
 
@@ -107,26 +139,26 @@ namespace Serialization.JSON
         {
             if (value)
             {
-                last = new(writer.Position, sizeof(char) * 4, Token.Type.True);
-                writer.WriteUTF8("true".AsSpan());
+                last = new(writer.Position, sizeof(char) * 4, Token.Type.Text);
+                writer.WriteUTF8(Token.True);
             }
             else
             {
-                last = new(writer.Position, sizeof(char) * 5, Token.Type.False);
-                writer.WriteUTF8("false".AsSpan());
+                last = new(writer.Position, sizeof(char) * 5, Token.Type.Text);
+                writer.WriteUTF8(Token.False);
             }
         }
 
         public void WriteNull()
         {
-            last = new(writer.Position, sizeof(char) * 4, Token.Type.Null);
-            writer.WriteUTF8("null".AsSpan());
+            last = new(writer.Position, sizeof(char) * 4, Token.Type.Text);
+            writer.WriteUTF8(Token.Null);
         }
 
         public void WriteObject<T>(T obj) where T : unmanaged, IJSONSerializable
         {
             WriteStartObject();
-            obj.Write(this);
+            obj.Write(ref this);
             WriteEndObject();
         }
 
@@ -138,10 +170,20 @@ namespace Serialization.JSON
             if (last.type != Token.Type.StartObject && last.type != Token.Type.StartArray && last.type != Token.Type.Unknown)
             {
                 writer.WriteUTF8(',');
+                settings.NewLine(writer);
             }
 
-            WriteText(name);
+            for (int i = 0; i < depth; i++)
+            {
+                settings.Indent(writer);
+            }
+
+            last = new(writer.Position, sizeof(char) * (2 + name.Length), Token.Type.Text);
+            settings.WriteNameQuoteCharacter(writer);
+            writer.WriteUTF8(name);
+            settings.WriteNameQuoteCharacter(writer);
             writer.WriteUTF8(':');
+            settings.SpaceAfterColon(writer);
         }
 
         public void WriteName(string name)
@@ -149,10 +191,27 @@ namespace Serialization.JSON
             WriteName(name.AsSpan());
         }
 
+        public void WriteArray<T>(ReadOnlySpan<char> name, ReadOnlySpan<T> items) where T : unmanaged, IJSONSerializable
+        {
+            WriteName(name);
+            WriteStartArray();
+            foreach (T item in items)
+            {
+                WriteObject(item);
+            }
+
+            WriteEndArray();
+        }
+
+        public void WriteArray<T>(string name, ReadOnlySpan<T> items) where T : unmanaged, IJSONSerializable
+        {
+            WriteArray(name.AsSpan(), items);
+        }
+
         public void WriteProperty(ReadOnlySpan<char> name, ReadOnlySpan<char> text)
         {
             WriteName(name);
-            WriteText(text);
+            WriteText(text, settings);
         }
 
         public void WriteProperty(string name, ReadOnlySpan<char> text)
@@ -193,9 +252,9 @@ namespace Serialization.JSON
             WriteProperty(name.AsSpan(), obj);
         }
 
-        public static JSONWriter Create()
+        public static JSONWriter Create(SerializationSettings settings = default)
         {
-            return new(new ByteWriter(4));
+            return new(settings);
         }
     }
 }

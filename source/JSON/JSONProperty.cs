@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Unmanaged;
 
@@ -12,46 +13,110 @@ namespace Serialization.JSON
         private int length;
         private Type type;
 
-        public readonly bool IsText => type == Type.Text;
-        public readonly bool IsNumber => type == Type.Number;
-        public readonly bool IsBoolean => type == Type.Boolean;
-        public readonly bool IsObject => type == Type.Object;
-        public readonly bool IsArray => type == Type.Array;
-        public readonly bool IsNull => type == Type.Null;
-        public readonly Type PropertyType => type;
-        public readonly ReadOnlySpan<char> Name => name.AsSpan();
+        public readonly bool IsText
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return type == Type.Text;
+            }
+        }
+
+        public readonly bool IsNumber
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return type == Type.Number;
+            }
+        }
+
+        public readonly bool IsBoolean
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return type == Type.Boolean;
+            }
+        }
+
+        public readonly bool IsObject
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return type == Type.Object;
+            }
+        }
+
+        public readonly bool IsArray
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return type == Type.Array;
+            }
+        }
+
+        public readonly bool IsNull
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return type == Type.Null;
+            }
+        }
+
+        public readonly Type PropertyType
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return type;
+            }
+        }
+
+        public readonly ReadOnlySpan<char> Name
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return name.AsSpan();
+            }
+        }
+
         public readonly bool IsDisposed => type == default || name.IsDisposed;
 
-        public unsafe ReadOnlySpan<char> Text
+        public ReadOnlySpan<char> Text
         {
             readonly get
             {
-                if (IsText)
-                {
-                    return new(value.Pointer, length / sizeof(char));
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Property is not of type {Type.Text}");
-                }
+                ThrowIfDisposed();
+                ThrowIfTypeMismatch(Type.Text);
+
+                return value.GetSpan<char>(length / sizeof(char));
             }
             set
             {
-                if (IsText)
-                {
-                    int newLength = value.Length * sizeof(char);
-                    if (length < newLength)
-                    {
-                        MemoryAddress.Resize(ref this.value, newLength);
-                    }
+                ThrowIfDisposed();
+                ThrowIfTypeMismatch(Type.Text);
 
-                    length = newLength;
-                    this.value.Write(0, value);
-                }
-                else
+                int newLength = value.Length * sizeof(char);
+                if (length < newLength)
                 {
-                    throw new InvalidOperationException($"Property is not of type {Type.Text}");
+                    MemoryAddress.Resize(ref this.value, newLength);
                 }
+
+                length = newLength;
+                this.value.Write(0, value);
             }
         }
 
@@ -59,6 +124,9 @@ namespace Serialization.JSON
         {
             get
             {
+                ThrowIfDisposed();
+                ThrowIfTypeMismatch(Type.Number);
+
                 return ref value.Read<double>();
             }
         }
@@ -67,47 +135,48 @@ namespace Serialization.JSON
         {
             get
             {
+                ThrowIfDisposed();
+                ThrowIfTypeMismatch(Type.Boolean);
+
                 return ref value.Read<bool>();
             }
         }
 
-        public readonly unsafe JSONObject Object
+        public readonly JSONObject Object
         {
             get
             {
+                ThrowIfDisposed();
+                ThrowIfTypeMismatch(Type.Object);
+
                 return value.Read<JSONObject>();
             }
             set
             {
-                if (IsObject)
-                {
-                    this.value.Read<JSONObject>().Dispose();
-                    this.value.Write(0, value);
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Property is not of type {Type.Object}");
-                }
+                ThrowIfDisposed();
+                ThrowIfTypeMismatch(Type.Object);
+
+                this.value.Read<JSONObject>().Dispose();
+                this.value.Write(0, value);
             }
         }
 
-        public readonly unsafe JSONArray Array
+        public readonly JSONArray Array
         {
             get
             {
+                ThrowIfDisposed();
+                ThrowIfTypeMismatch(Type.Array);
+
                 return value.Read<JSONArray>();
             }
             set
             {
-                if (IsArray)
-                {
-                    this.value.Read<JSONArray>().Dispose();
-                    this.value.Write(0, value);
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Property is not of type {Type.Array}");
-                }
+                ThrowIfDisposed();
+                ThrowIfTypeMismatch(Type.Array);
+
+                this.value.Read<JSONArray>().Dispose();
+                this.value.Write(0, value);
             }
         }
 
@@ -123,39 +192,34 @@ namespace Serialization.JSON
         public JSONProperty(ReadOnlySpan<char> name, double number)
         {
             this.name = new(name);
-            length = sizeof(double);
-            value = MemoryAddress.Allocate(length);
-            value.Write(0, number);
+            value = MemoryAddress.AllocateValue(number, out length);
             type = Type.Number;
         }
 
         public JSONProperty(ReadOnlySpan<char> name, bool boolean)
         {
             this.name = new(name);
-            length = sizeof(bool);
-            value = MemoryAddress.Allocate(length);
-            value.Write(0, boolean);
+            value = MemoryAddress.AllocateValue(boolean, out length);
             type = Type.Boolean;
         }
 
-        public unsafe JSONProperty(ReadOnlySpan<char> name, JSONObject obj)
+        public JSONProperty(ReadOnlySpan<char> name, JSONObject jsonObject)
         {
             this.name = new(name);
-            length = sizeof(nint);
-            value = MemoryAddress.Allocate(length);
-            value.Write(0, obj.Address);
+            value = MemoryAddress.AllocateValue(jsonObject, out length);
             type = Type.Object;
         }
 
-        public unsafe JSONProperty(ReadOnlySpan<char> name, JSONArray array)
+        public JSONProperty(ReadOnlySpan<char> name, JSONArray jsonArray)
         {
             this.name = new(name);
-            length = sizeof(nint);
-            value = MemoryAddress.Allocate(length);
-            value.Write(0, array.Address);
+            value = MemoryAddress.AllocateValue(jsonArray, out length);
             type = Type.Array;
         }
 
+        /// <summary>
+        /// Creates a null property.
+        /// </summary>
         public JSONProperty(ReadOnlySpan<char> name)
         {
             this.name = new(name);
@@ -164,18 +228,36 @@ namespace Serialization.JSON
             type = Type.Null;
         }
 
-        public unsafe void Dispose()
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfDisposed()
         {
+            if (type == default)
+            {
+                throw new ObjectDisposedException(nameof(JSONProperty), "The JSON property has been disposed");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfTypeMismatch(Type desiredType)
+        {
+            if (type != desiredType)
+            {
+                throw new InvalidOperationException($"Property is not of type {desiredType}");
+            }
+        }
+
+        public void Dispose()
+        {
+            ThrowIfDisposed();
+
             if (type == Type.Object)
             {
-                nint address = value.Read<nint>();
-                JSONObject jsonObject = new((void*)address);
+                JSONObject jsonObject = value.Read<JSONObject>();
                 jsonObject.Dispose();
             }
             else if (type == Type.Array)
             {
-                nint address = value.Read<nint>();
-                JSONArray jsonArray = new((void*)address);
+                JSONArray jsonArray = value.Read<JSONArray>();
                 jsonArray.Dispose();
             }
 
@@ -184,15 +266,14 @@ namespace Serialization.JSON
             type = default;
         }
 
-        public unsafe readonly void ToString(Text result, bool prefixName, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(Text result, SerializationSettings settings = default)
         {
-            if (prefixName)
-            {
-                result.Append('\"');
-                result.Append(Name);
-                result.Append('\"');
-                result.Append(':');
-            }
+            ToString(result, settings, 0);
+        }
+
+        internal readonly void ToString(Text result, SerializationSettings settings, byte depth)
+        {
+            ThrowIfDisposed();
 
             if (type == Type.Text)
             {
@@ -202,33 +283,28 @@ namespace Serialization.JSON
             }
             else if (type == Type.Number)
             {
-                double number = Number;
+                double number = value.Read<double>();
                 Span<char> buffer = stackalloc char[64];
                 int length = number.ToString(buffer);
                 result.Append(buffer.Slice(0, length));
             }
             else if (type == Type.Boolean)
             {
-                result.Append(Boolean ? "true".AsSpan() : "false".AsSpan());
+                result.Append(value.Read<bool>() ? Token.True : Token.False);
             }
             else if (type == Type.Object)
             {
-                void* ptr = (void*)value.Read<nint>();
-                JSONObject obj = new(ptr);
-                obj.ToString(result, indent, cr, lf, depth);
+                JSONObject jsonObject = value.Read<JSONObject>();
+                jsonObject.ToString(result, settings, depth);
             }
             else if (type == Type.Array)
             {
-                void* ptr = (void*)value.Read<nint>();
-                JSONArray array = new(ptr);
-                array.ToString(result, indent, cr, lf, depth);
+                JSONArray jsonArray = value.Read<JSONArray>();
+                jsonArray.ToString(result, settings, depth);
             }
             else if (type == Type.Null)
             {
-                result.Append('n');
-                result.Append('u');
-                result.Append('l');
-                result.Append('l');
+                result.Append(Token.Null);
             }
             else
             {
@@ -238,16 +314,48 @@ namespace Serialization.JSON
 
         public readonly override string ToString()
         {
-            Text buffer = new(0);
-            ToString(buffer, true);
-            string result = buffer.ToString();
-            buffer.Dispose();
-            return result;
+            ThrowIfDisposed();
+
+            if (type == Type.Text)
+            {
+                return Text.ToString();
+            }
+            else if (type == Type.Number)
+            {
+                double number = Number;
+                Span<char> buffer = stackalloc char[64];
+                int length = number.ToString(buffer);
+                return buffer.Slice(0, length).ToString();
+            }
+            else if (type == Type.Boolean)
+            {
+                return Boolean ? Token.True : Token.False;
+            }
+            else if (type == Type.Object)
+            {
+                JSONObject jsonObject = value.Read<JSONObject>();
+                return jsonObject.ToString();
+            }
+            else if (type == Type.Array)
+            {
+                JSONArray jsonArray = value.Read<JSONArray>();
+                return jsonArray.ToString();
+            }
+            else if (type == Type.Null)
+            {
+                return Token.Null;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Property is of an unknown type: {type}");
+            }
         }
 
         public readonly bool TryGetText(out ReadOnlySpan<char> text)
         {
-            if (IsText)
+            ThrowIfDisposed();
+
+            if (type == Type.Text)
             {
                 text = Text;
                 return true;
@@ -259,9 +367,11 @@ namespace Serialization.JSON
 
         public readonly bool TryGetNumber(out double number)
         {
-            if (IsNumber)
+            ThrowIfDisposed();
+
+            if (type == Type.Number)
             {
-                number = Number;
+                number = value.Read<double>();
                 return true;
             }
 
@@ -271,7 +381,9 @@ namespace Serialization.JSON
 
         public readonly bool TryGetBoolean(out bool boolean)
         {
-            if (IsBoolean)
+            ThrowIfDisposed();
+
+            if (type == Type.Boolean)
             {
                 boolean = value.Read<bool>();
                 return true;
@@ -281,27 +393,31 @@ namespace Serialization.JSON
             return false;
         }
 
-        public unsafe readonly bool TryGetObject(out JSONObject obj)
+        public readonly bool TryGetObject(out JSONObject jsonObject)
         {
-            if (IsObject)
+            ThrowIfDisposed();
+
+            if (type == Type.Object)
             {
-                obj = Object;
+                jsonObject = value.Read<JSONObject>();
                 return true;
             }
 
-            obj = default;
+            jsonObject = default;
             return false;
         }
 
-        public unsafe readonly bool TryGetArray(out JSONArray array)
+        public readonly bool TryGetArray(out JSONArray jsonArray)
         {
-            if (IsArray)
+            ThrowIfDisposed();
+
+            if (type == Type.Array)
             {
-                array = Array;
+                jsonArray = value.Read<JSONArray>();
                 return true;
             }
 
-            array = default;
+            jsonArray = default;
             return false;
         }
 

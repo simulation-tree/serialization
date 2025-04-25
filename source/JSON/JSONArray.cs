@@ -9,12 +9,30 @@ namespace Serialization.JSON
     [SkipLocalsInit]
     public unsafe struct JSONArray : IDisposable, ISerializable
     {
-        private Implementation* value;
+        private Implementation* jsonArray;
 
-        public readonly int Count => value->elements.Count;
-        public readonly bool IsDisposed => value is null;
-        public readonly nint Address => (nint)value;
-        public readonly ReadOnlySpan<JSONProperty> Elements => value->elements.AsSpan();
+        public readonly int Count
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return jsonArray->elements.Count;
+            }
+        }
+
+        public readonly bool IsDisposed => jsonArray is null;
+        public readonly nint Address => (nint)jsonArray;
+
+        public readonly ReadOnlySpan<JSONProperty> Elements
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return jsonArray->elements.AsSpan();
+            }
+        }
 
         public readonly JSONProperty this[int index]
         {
@@ -23,48 +41,62 @@ namespace Serialization.JSON
                 ThrowIfDisposed();
                 ThrowIfOutOfRange(index);
 
-                return value->elements[index];
+                return jsonArray->elements[index];
             }
         }
 
 #if NET
         public JSONArray()
         {
-            value = Implementation.Allocate();
+            jsonArray = MemoryAddress.AllocatePointer<Implementation>();
+            jsonArray->elements = new(4);
         }
 #endif
 
         public JSONArray(void* value)
         {
-            this.value = (Implementation*)value;
+            this.jsonArray = (Implementation*)value;
         }
 
         public void Dispose()
         {
             ThrowIfDisposed();
-            Implementation.Free(ref value);
+
+            Span<JSONProperty> elements = jsonArray->elements.AsSpan();
+            for (int i = 0; i < elements.Length; i++)
+            {
+                elements[i].Dispose();
+            }
+
+            jsonArray->elements.Dispose();
+            MemoryAddress.Free(ref jsonArray);
         }
 
-        public readonly void ToString(Text result, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(Text result, SerializationSettings settings = default)
+        {
+            ToString(result, settings, 0);
+        }
+
+        internal readonly void ToString(Text result, SerializationSettings settings, byte depth)
         {
             ThrowIfDisposed();
 
             result.Append('[');
-            if (value->elements.Count > 0)
+            if (jsonArray->elements.Count > 0)
             {
-                NewLine();
+                settings.NewLine(result);
                 for (int i = 0; i <= depth; i++)
                 {
-                    Indent(indent);
+                    settings.Indent(result);
                 }
 
                 int position = 0;
                 while (true)
                 {
-                    ref JSONProperty element = ref value->elements[position];
+                    ref JSONProperty element = ref jsonArray->elements[position];
                     byte childDepth = depth;
                     childDepth++;
-                    element.ToString(result, false, indent, cr, lf, childDepth);
+                    element.ToString(result, settings, childDepth);
                     position++;
 
                     if (position == Count)
@@ -73,43 +105,27 @@ namespace Serialization.JSON
                     }
 
                     result.Append(',');
-                    NewLine();
+                    settings.NewLine(result);
                     for (int i = 0; i <= depth; i++)
                     {
-                        Indent(indent);
+                        settings.Indent(result);
                     }
                 }
 
-                NewLine();
+                settings.NewLine(result);
                 for (int i = 0; i < depth; i++)
                 {
-                    Indent(indent);
+                    settings.Indent(result);
                 }
             }
 
             result.Append(']');
-
-            void NewLine()
-            {
-                if (cr)
-                {
-                    result.Append('\r');
-                }
-
-                if (lf)
-                {
-                    result.Append('\n');
-                }
-            }
-
-            void Indent(ReadOnlySpan<char> indent)
-            {
-                result.Append(indent);
-            }
         }
 
         public readonly override string ToString()
         {
+            ThrowIfDisposed();
+
             Text result = new(0);
             ToString(result);
             string text = result.ToString();
@@ -129,7 +145,7 @@ namespace Serialization.JSON
         [Conditional("DEBUG")]
         private readonly void ThrowIfOutOfRange(int index)
         {
-            if (index >= Count)
+            if (index >= Count || index < 0)
             {
                 throw new IndexOutOfRangeException($"Index {index} is out of range");
             }
@@ -140,9 +156,9 @@ namespace Serialization.JSON
             ThrowIfDisposed();
 
             Span<char> nameBuffer = stackalloc char[16];
-            int index = value->elements.Count;
+            int index = jsonArray->elements.Count;
             int length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), text));
+            jsonArray->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), text));
         }
 
         public readonly void Add(string text)
@@ -155,9 +171,9 @@ namespace Serialization.JSON
             ThrowIfDisposed();
 
             Span<char> nameBuffer = stackalloc char[16];
-            int index = value->elements.Count;
+            int index = jsonArray->elements.Count;
             int length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), number));
+            jsonArray->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), number));
         }
 
         public readonly void Add(bool boolean)
@@ -165,9 +181,9 @@ namespace Serialization.JSON
             ThrowIfDisposed();
 
             Span<char> nameBuffer = stackalloc char[16];
-            int index = value->elements.Count;
+            int index = jsonArray->elements.Count;
             int length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), boolean));
+            jsonArray->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), boolean));
         }
 
         public readonly void Add(JSONObject jsonObject)
@@ -175,9 +191,9 @@ namespace Serialization.JSON
             ThrowIfDisposed();
 
             Span<char> nameBuffer = stackalloc char[16];
-            int index = value->elements.Count;
+            int index = jsonArray->elements.Count;
             int length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), jsonObject));
+            jsonArray->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), jsonObject));
         }
 
         public readonly void Add(JSONArray jsonArray)
@@ -185,9 +201,9 @@ namespace Serialization.JSON
             ThrowIfDisposed();
 
             Span<char> nameBuffer = stackalloc char[16];
-            int index = value->elements.Count;
+            int index = this.jsonArray->elements.Count;
             int length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), jsonArray));
+            this.jsonArray->elements.Add(new JSONProperty(nameBuffer.Slice(0, length), jsonArray));
         }
 
         public readonly void AddNull()
@@ -195,13 +211,15 @@ namespace Serialization.JSON
             ThrowIfDisposed();
 
             Span<char> nameBuffer = stackalloc char[16];
-            int index = value->elements.Count;
+            int index = jsonArray->elements.Count;
             int length = index.ToString(nameBuffer);
-            value->elements.Add(new JSONProperty(nameBuffer.Slice(0, length)));
+            jsonArray->elements.Add(new JSONProperty(nameBuffer.Slice(0, length)));
         }
 
         readonly void ISerializable.Write(ByteWriter writer)
         {
+            ThrowIfDisposed();
+
             Text list = new(0);
             ToString(list);
             writer.WriteUTF8(list.AsSpan());
@@ -210,98 +228,70 @@ namespace Serialization.JSON
 
         void ISerializable.Read(ByteReader reader)
         {
-            value = Implementation.Allocate();
-            ParseArray(new(reader), reader, this);
-            static void ParseArray(JSONReader jsonReader, ByteReader reader, JSONArray jsonArray)
+            jsonArray = MemoryAddress.AllocatePointer<Implementation>();
+            jsonArray->elements = new(4);
+            using Text textBuffer = new(256);
+            JSONReader jsonReader = new(reader);
+            while (jsonReader.ReadToken(out Token token))
             {
-                while (jsonReader.ReadToken(out Token token))
+                if (token.type == Token.Type.Text)
                 {
-                    if (token.type == Token.Type.True)
+                    int capacity = token.length * 4;
+                    if (textBuffer.Length < capacity)
                     {
-                        jsonArray.Add(jsonReader.GetBoolean(token));
+                        textBuffer.SetLength(capacity);
                     }
-                    else if (token.type == Token.Type.False)
-                    {
-                        jsonArray.Add(jsonReader.GetBoolean(token));
-                    }
-                    else if (token.type == Token.Type.Null)
-                    {
-                        jsonArray.AddNull();
-                    }
-                    else if (token.type == Token.Type.Number)
-                    {
-                        jsonArray.Add(jsonReader.GetNumber(token));
-                    }
-                    else if (token.type == Token.Type.Text)
-                    {
-                        Text textBuffer = new(token.length * 4);
-                        Span<char> bufferSpan = textBuffer.AsSpan();
-                        int textLength = jsonReader.GetText(token, bufferSpan);
-                        Span<char> text = bufferSpan.Slice(0, textLength);
-                        if (text.Length > 0 && text[0] == '"')
-                        {
-                            text = text.Slice(1, text.Length - 2);
-                        }
 
-                        jsonArray.Add(text);
-                        textBuffer.Dispose();
-                    }
-                    else if (token.type == Token.Type.StartObject)
+                    int textLength = jsonReader.GetText(token, textBuffer.AsSpan());
+                    Span<char> text = textBuffer.Slice(0, textLength);
+                    if (double.TryParse(text, out double number))
                     {
-                        JSONObject newObject = reader.ReadObject<JSONObject>();
-                        jsonArray.Add(newObject);
+                        Add(number);
                     }
-                    else if (token.type == Token.Type.StartArray)
+                    else if (text.SequenceEqual(Token.True))
                     {
-                        JSONArray newArray = reader.ReadObject<JSONArray>();
-                        jsonArray.Add(newArray);
+                        Add(true);
                     }
-                    else if (token.type == Token.Type.EndArray)
+                    else if (text.SequenceEqual(Token.False))
                     {
-                        break;
+                        Add(false);
                     }
+                    else if (text.SequenceEqual(Token.Null))
+                    {
+                        AddNull();
+                    }
+                    else
+                    {
+                        Add(text);
+                    }
+                }
+                else if (token.type == Token.Type.StartObject)
+                {
+                    JSONObject newObject = reader.ReadObject<JSONObject>();
+                    Add(newObject);
+                }
+                else if (token.type == Token.Type.StartArray)
+                {
+                    JSONArray newArray = reader.ReadObject<JSONArray>();
+                    Add(newArray);
+                }
+                else if (token.type == Token.Type.EndArray)
+                {
+                    break;
                 }
             }
         }
 
         public static JSONArray Create()
         {
-            return new(Implementation.Allocate());
+            Implementation* jsonArray = MemoryAddress.AllocatePointer<Implementation>();
+            jsonArray->elements = new(4);
+            return new(jsonArray);
         }
 
-        public readonly struct Implementation
+        private struct Implementation
         {
-            public readonly List<JSONProperty> elements;
-
-            private Implementation(List<JSONProperty> elements)
-            {
-                this.elements = elements;
-            }
-
-            public static Implementation* Allocate()
-            {
-                List<JSONProperty> elements = new(4);
-                ref Implementation value = ref MemoryAddress.Allocate<Implementation>();
-                value = new(elements);
-                fixed (Implementation* pointer = &value)
-                {
-                    return pointer;
-                }
-            }
-
-            public static void Free(ref Implementation* array)
-            {
-                MemoryAddress.ThrowIfDefault(array);
-
-                for (int i = 0; i < array->elements.Count; i++)
-                {
-                    JSONProperty property = array->elements[i];
-                    property.Dispose();
-                }
-
-                array->elements.Dispose();
-                MemoryAddress.Free(ref array);
-            }
+            public List<JSONProperty> elements;
         }
     }
 }

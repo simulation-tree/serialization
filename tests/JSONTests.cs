@@ -1,3 +1,4 @@
+using Collections.Generic;
 using Serialization.JSON;
 using System;
 using System.Text.Json;
@@ -9,6 +10,103 @@ namespace Serialization.Tests
 {
     public class JSONTests : UnmanagedTests
     {
+        [Test]
+        public void ParseTokens()
+        {
+            JsonObject json = new()
+            {
+                { "name", "John Programming" },
+                { "age", 42 },
+                { "isAlive", true },
+                {
+                    "address", new JsonObject
+                    {
+                        { "streetAddress", "21 2nd Street" },
+                        { "city", "New York" },
+                        { "state", "NY" },
+                        { "postalCode", "10021-3100" }
+                    }
+                }
+            };
+
+            string jsonString = json.ToString();
+            using ByteReader reader = ByteReader.CreateFromUTF8(jsonString);
+            JSONReader jsonReader = new(reader);
+            using List<Token> tokens = new();
+            while (jsonReader.ReadToken(out Token token))
+            {
+                tokens.Add(token);
+                Console.WriteLine($"{token.type} = {token.ToString(jsonReader)}");
+            }
+
+            Assert.That(tokens.Count, Is.EqualTo(19));
+            Assert.That(tokens[0].type == Token.Type.StartObject);
+            Assert.That(tokens[1].type == Token.Type.Text);     //name
+            Assert.That(tokens[2].type == Token.Type.Text);     //John Doe
+            Assert.That(tokens[3].type == Token.Type.Text);     //age
+            Assert.That(tokens[4].type == Token.Type.Text);     //42
+            Assert.That(tokens[5].type == Token.Type.Text);     //isAlive
+            Assert.That(tokens[6].type == Token.Type.Text);     //true
+            Assert.That(tokens[7].type == Token.Type.Text);     //address
+            Assert.That(tokens[8].type == Token.Type.StartObject);
+            Assert.That(tokens[9].type == Token.Type.Text);     //streetAddress
+            Assert.That(tokens[10].type == Token.Type.Text);    //21 2nd Street
+            Assert.That(tokens[11].type == Token.Type.Text);    //city
+            Assert.That(tokens[12].type == Token.Type.Text);    //New York
+            Assert.That(tokens[13].type == Token.Type.Text);    //state
+            Assert.That(tokens[14].type == Token.Type.Text);    //NY
+            Assert.That(tokens[15].type == Token.Type.Text);    //postalCode
+            Assert.That(tokens[16].type == Token.Type.Text);    //10021-3100
+            Assert.That(tokens[17].type == Token.Type.EndObject);
+            Assert.That(tokens[18].type == Token.Type.EndObject);
+        }
+
+        [Test]
+        public void ParseJSON5Tokens()
+        {
+            string source = @"{
+                name: 'John Programming',
+                age: 42,
+                isAlive: true,
+                address: {
+                    streetAddress: '21 2nd Street',
+                    city: 'New York',
+                    state: 'NY',
+                    postalCode: '10021-3100'
+                }
+            }";
+
+            using ByteReader reader = ByteReader.CreateFromUTF8(source);
+            JSONReader jsonReader = new(reader);
+            using List<Token> tokens = new();
+            while (jsonReader.ReadToken(out Token token))
+            {
+                tokens.Add(token);
+                Console.WriteLine($"{token.type} = {token.ToString(jsonReader)}");
+            }
+
+            Assert.That(tokens.Count, Is.EqualTo(19));
+            Assert.That(tokens[0].type == Token.Type.StartObject);
+            Assert.That(tokens[1].type == Token.Type.Text);     //name
+            Assert.That(tokens[2].type == Token.Type.Text);     //John Doe
+            Assert.That(tokens[3].type == Token.Type.Text);     //age
+            Assert.That(tokens[4].type == Token.Type.Text);     //42
+            Assert.That(tokens[5].type == Token.Type.Text);     //isAlive
+            Assert.That(tokens[6].type == Token.Type.Text);     //true
+            Assert.That(tokens[7].type == Token.Type.Text);     //address
+            Assert.That(tokens[8].type == Token.Type.StartObject);
+            Assert.That(tokens[9].type == Token.Type.Text);     //streetAddress
+            Assert.That(tokens[10].type == Token.Type.Text);    //21 2nd Street
+            Assert.That(tokens[11].type == Token.Type.Text);    //city
+            Assert.That(tokens[12].type == Token.Type.Text);    //New York
+            Assert.That(tokens[13].type == Token.Type.Text);    //state
+            Assert.That(tokens[14].type == Token.Type.Text);    //NY
+            Assert.That(tokens[15].type == Token.Type.Text);    //postalCode
+            Assert.That(tokens[16].type == Token.Type.Text);    //10021-3100
+            Assert.That(tokens[17].type == Token.Type.EndObject);
+            Assert.That(tokens[18].type == Token.Type.EndObject);
+        }
+
         [Test]
         public void ReadSampleJSON()
         {
@@ -109,7 +207,7 @@ namespace Serialization.Tests
             jsonObject["age"].Number++;
 
             using Text buffer = new();
-            jsonObject.ToString(buffer, "    ".AsSpan(), true, true);
+            jsonObject.ToString(buffer, SerializationSettings.PrettyPrinted);
             Console.WriteLine(buffer.ToString());
         }
 
@@ -138,24 +236,22 @@ namespace Serialization.Tests
                     {
                         length = jsonReader.GetText(next, buffer);
                         string value = buffer.Slice(0, length).ToString();
-                        settingsList.Add((name, value));
+                        if (double.TryParse(value, out double number))
+                        {
+                            settingsList.Add((name, number));
+                        }
+                        else if (bool.TryParse(value, out bool boolean))
+                        {
+                            settingsList.Add((name, boolean));
+                        }
+                        else
+                        {
+                            settingsList.Add((name, value));
+                        }
                     }
-                    else if (next.type == Token.Type.Number)
+                    else
                     {
-                        double value = jsonReader.GetNumber(next);
-                        settingsList.Add((name, value));
-                    }
-                    else if (next.type == Token.Type.True)
-                    {
-                        settingsList.Add((name, true));
-                    }
-                    else if (next.type == Token.Type.False)
-                    {
-                        settingsList.Add((name, false));
-                    }
-                    else if (next.type == Token.Type.Null)
-                    {
-                        settingsList.Add((name, null));
+                        throw new Exception($"Expected text token, but got {next.type}");
                     }
                 }
                 else
@@ -181,7 +277,8 @@ namespace Serialization.Tests
         {
             JsonObject json = new();
             JsonArray inventory = new();
-            for (uint i = 0; i < 32; i++)
+            const int ItemCount = 32;
+            for (uint i = 0; i < ItemCount; i++)
             {
                 JsonObject item = new();
                 item.Add("name", $"Item {i}");
@@ -196,7 +293,7 @@ namespace Serialization.Tests
             using ByteReader reader = ByteReader.CreateFromUTF8(jsonString);
             JSONObject obj = reader.ReadObject<JSONObject>();
             JSONArray array = obj.GetArray("inventory");
-            Assert.That(array.Count, Is.EqualTo(32));
+            Assert.That(array.Count, Is.EqualTo(ItemCount));
             string otherString = obj.ToString();
             Assert.That(jsonString, Is.EqualTo(otherString));
             obj.Dispose();
@@ -227,11 +324,58 @@ namespace Serialization.Tests
         public void SerializeFromStruct()
         {
             using DummyJSONObject dummy = new("abacus", "212-4", 32, false);
-            using JSONWriter writer = JSONWriter.Create();
+            using JSONWriter writer = new();
             writer.WriteObject(dummy);
-            string jsonString = writer.ToString();
-            Console.WriteLine(jsonString);
-            Assert.That(jsonString, Is.EqualTo("{\"name\":\"abacus\",\"value\":\"212-4\",\"quantity\":32,\"isRare\":false}"));
+            string jsonSource = writer.ToString();
+            Assert.That(jsonSource, Is.EqualTo("{\"name\":\"abacus\",\"value\":\"212-4\",\"quantity\":32,\"isRare\":false}"));
+        }
+
+        [Test]
+        public void WriteArrayToJSON5()
+        {
+            using Player player = new("playerName", 100, "red");
+            player.AddItem("abacus", "212-4", 32, false);
+            player.AddItem("itemId", "forgot what this is", 1, true);
+
+            SerializationSettings settings = SerializationSettings.JSON5PrettyPrinted;
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            {
+                settings.flags &= ~SerializationSettings.Flags.CarrierReturn;
+            }
+
+            using JSONWriter jsonWriter = new(settings);
+            jsonWriter.WriteObject(player);
+            string jsonSource = jsonWriter.ToString();
+
+            using ByteReader reader = ByteReader.CreateFromUTF8(jsonSource);
+            JSONReader jsonReader = new(reader);
+            using Player readPlayer = jsonReader.ReadObject<Player>();
+            Assert.That(readPlayer.Name.SequenceEqual(player.Name), Is.True);
+            Assert.That(readPlayer.HP, Is.EqualTo(player.HP));
+            Assert.That(readPlayer.Items.Length, Is.EqualTo(player.Items.Length));
+            Assert.That(readPlayer.Color, Is.EqualTo(player.Color));
+
+            string expectedSource =
+@"{
+    name: 'playerName',
+    hp: 100,
+    items: [
+        {
+            name: 'abacus',
+            value: '212-4',
+            quantity: 32,
+            isRare: false
+        },
+        {
+            name: 'itemId',
+            value: 'forgot what this is',
+            quantity: 1,
+            isRare: true
+        }
+    ],
+    htmlColor: 'red'
+}";
+            Assert.That(jsonSource, Is.EqualTo(expectedSource));
         }
 
         [Test]
@@ -352,6 +496,7 @@ namespace Serialization.Tests
 
             void IJSONSerializable.Read(JSONReader reader)
             {
+                //for all properties, skip reading the name, and read the value directly (assumes layout is perfect)
                 Span<char> buffer = stackalloc char[64];
                 reader.ReadToken();
                 int length = reader.ReadText(buffer);
@@ -365,12 +510,88 @@ namespace Serialization.Tests
                 isRare = reader.ReadBoolean();
             }
 
-            readonly void IJSONSerializable.Write(JSONWriter writer)
+            readonly void IJSONSerializable.Write(ref JSONWriter writer)
             {
                 writer.WriteProperty(nameof(name), name.AsSpan());
                 writer.WriteProperty(nameof(value), value.AsSpan());
                 writer.WriteProperty(nameof(quantity), quantity);
                 writer.WriteProperty(nameof(isRare), isRare);
+            }
+        }
+
+        public struct Player : IJSONSerializable, IDisposable
+        {
+            private Text name;
+            private int hp;
+            private List<DummyJSONObject> items;
+            private ASCIIText16 htmlColor;
+
+            public readonly ReadOnlySpan<char> Name => name.AsSpan();
+            public readonly int HP => hp;
+            public readonly ReadOnlySpan<DummyJSONObject> Items => items.AsSpan();
+            public readonly ASCIIText16 Color => htmlColor;
+
+            public Player(ReadOnlySpan<char> name, int hp, ReadOnlySpan<char> htmlColor)
+            {
+                this.name = new(name);
+                this.hp = hp;
+                this.items = new();
+                this.htmlColor = new(htmlColor);
+            }
+
+            public void Dispose()
+            {
+                for (int i = 0; i < items.Count; i++)
+                {
+                    items[i].Dispose();
+                }
+
+                items.Dispose();
+                name.Dispose();
+            }
+
+            public readonly void AddItem(ReadOnlySpan<char> name, ReadOnlySpan<char> value, int quantity, bool isRare)
+            {
+                items.Add(new(name, value, quantity, isRare));
+            }
+
+            void IJSONSerializable.Read(JSONReader reader)
+            {
+                reader.ReadToken(); //name
+                Span<char> buffer = stackalloc char[64];
+                int nameLength = reader.ReadText(buffer);
+                name = new(buffer.Slice(0, nameLength));
+
+                reader.ReadToken(); //name
+                hp = (int)reader.ReadNumber();
+
+                items = new();
+                reader.ReadToken(); //name
+                reader.ReadToken(); //[
+                while (reader.PeekToken(out Token token))
+                {
+                    if (token.type == Token.Type.EndArray)
+                    {
+                        break;
+                    }
+
+                    DummyJSONObject item = reader.ReadObject<DummyJSONObject>();
+                    items.Add(item);
+                }
+
+                reader.ReadToken(); //]
+
+                reader.ReadToken(); //name
+                int colorLength = reader.ReadText(buffer);
+                htmlColor = new(buffer.Slice(0, colorLength));
+            }
+
+            readonly void IJSONSerializable.Write(ref JSONWriter writer)
+            {
+                writer.WriteProperty(nameof(name), name.AsSpan());
+                writer.WriteProperty(nameof(hp), hp);
+                writer.WriteArray<DummyJSONObject>(nameof(items), items.AsSpan());
+                writer.WriteProperty(nameof(htmlColor), htmlColor.ToString());
             }
         }
     }

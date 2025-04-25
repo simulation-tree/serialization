@@ -32,111 +32,119 @@ namespace Serialization.JSON
 
         public readonly bool PeekToken(out Token token)
         {
-            Span<char> buffer = stackalloc char[8];
+            return PeekToken(out token, out _);
+        }
+
+        public readonly bool PeekToken(out Token token, out int readBytes)
+        {
             token = default;
             int position = reader.Position;
-            while (position < reader.Length)
+            int length = reader.Length;
+            while (position < length)
             {
                 byte cLength = reader.PeekUTF8(position, out char c, out _);
                 if (c == '{')
                 {
                     token = new Token(position, cLength, Token.Type.StartObject);
+                    readBytes = position - reader.Position + 1;
                     return true;
                 }
                 else if (c == '}')
                 {
                     token = new Token(position, cLength, Token.Type.EndObject);
+                    readBytes = position - reader.Position + 1;
                     return true;
                 }
                 else if (c == '[')
                 {
                     token = new Token(position, cLength, Token.Type.StartArray);
+                    readBytes = position - reader.Position + 1;
                     return true;
                 }
                 else if (c == ']')
                 {
                     token = new Token(position, cLength, Token.Type.EndArray);
+                    readBytes = position - reader.Position + 1;
                     return true;
+                }
+                else if (c == ',' || c == ':' || SharedFunctions.IsWhitespace(c))
+                {
+                    position += cLength;
                 }
                 else if (c == '"')
                 {
-                    int start = position;
                     position += cLength;
-                    while (position < reader.Length)
+                    int start = position;
+                    while (position < length)
                     {
                         cLength = reader.PeekUTF8(position, out c, out _);
-                        position += cLength;
                         if (c == '"')
                         {
                             token = new Token(start, position - start, Token.Type.Text);
+                            readBytes = position - reader.Position + 2;
                             return true;
                         }
-                    }
 
-                    throw new InvalidOperationException($"Invalid JSON token at position {position}, expected '\"'.");
+                        position += cLength;
+                    }
                 }
-                else if (c == 't' || c == 'f')
+                else if (c == '\'')
                 {
-                    int peekLength = reader.PeekUTF8(position, 5, buffer);
-                    if (buffer.Slice(0, peekLength).SequenceEqual("false".AsSpan()))
+                    position += cLength;
+                    int start = position;
+                    while (position < length)
                     {
-                        token = new Token(position, peekLength, Token.Type.False);
-                        return true;
-                    }
+                        cLength = reader.PeekUTF8(position, out c, out _);
+                        if (c == '\'')
+                        {
+                            token = new Token(start, position - start, Token.Type.Text);
+                            readBytes = position - reader.Position + 2;
+                            return true;
+                        }
 
-                    Span<char> smallerBuffer = buffer.Slice(0, peekLength - 1);
-                    if (smallerBuffer.SequenceEqual("true".AsSpan()))
-                    {
-                        token = new Token(position, peekLength - 1, Token.Type.True);
-                        return true;
+                        position += cLength;
                     }
-
-                    throw new InvalidOperationException($"Unexpected token {c} at {position}.");
                 }
-                else if (char.IsDigit(c) || c == '.' || c == '-')
+                else
                 {
                     int start = position;
                     position += cLength;
-                    while (position < reader.Length)
+                    while (position < length)
                     {
                         cLength = reader.PeekUTF8(position, out c, out _);
-                        if (!char.IsDigit(c) && c != '.' && c != '-')
+                        if (c == '{' || c == '}' || c == '[' || c == ']' || c == ',' || c == ':' || SharedFunctions.IsWhitespace(c))
                         {
-                            token = new Token(start, position - start, Token.Type.Number);
+                            token = new Token(start, position - start, Token.Type.Text);
+                            readBytes = position - reader.Position;
                             return true;
                         }
 
                         position += cLength;
                     }
 
-                    throw new InvalidOperationException($"Invalid JSON token at position {position}, expected number.");
-                }
-                else
-                {
-                    //skip
-                    position += cLength;
+                    throw new InvalidOperationException($"Unexpected end of stream while reading token, expected a JSON token to finish the text");
                 }
             }
 
+            readBytes = default;
             return false;
         }
 
-        public Token ReadToken()
+        public readonly Token ReadToken()
         {
-            PeekToken(out Token token);
-            reader.Position = token.position + token.length;
+            PeekToken(out Token token, out int readBytes);
+            reader.Advance(readBytes);
             return token;
         }
 
-        public bool ReadToken(out Token token)
+        public readonly bool ReadToken(out Token token)
         {
-            bool read = PeekToken(out token);
-            int end = token.position + token.length;
-            reader.Position = end;
+            bool read = PeekToken(out token, out int readBytes);
+            reader.Advance(readBytes);
             return read;
         }
 
-        public int ReadText(Span<char> buffer)
+        public readonly int ReadText(Span<char> buffer)
         {
             while (ReadToken(out Token token))
             {
@@ -157,7 +165,7 @@ namespace Serialization.JSON
             throw new InvalidOperationException("Expected token for text but none found");
         }
 
-        public double ReadNumber()
+        public readonly double ReadNumber()
         {
             while (ReadToken(out Token token))
             {
@@ -165,7 +173,7 @@ namespace Serialization.JSON
                 {
                     //skip
                 }
-                else if (token.type == Token.Type.Number)
+                else if (token.type == Token.Type.Text)
                 {
                     return GetNumber(token);
                 }
@@ -178,21 +186,28 @@ namespace Serialization.JSON
             throw new InvalidOperationException("Expected token for number but none found");
         }
 
-        public bool ReadBoolean()
+        public readonly bool ReadBoolean()
         {
+            Span<char> buffer = stackalloc char[32];
             while (ReadToken(out Token token))
             {
                 if (token.type == Token.Type.EndObject || token.type == Token.Type.EndArray)
                 {
                     //skip
                 }
-                else if (token.type == Token.Type.True)
+                else if (token.type == Token.Type.Text)
                 {
-                    return true;
-                }
-                else if (token.type == Token.Type.False)
-                {
-                    return false;
+                    int length = GetText(token, buffer);
+                    if (buffer.Slice(0, length).SequenceEqual(Token.True))
+                    {
+                        return true;
+                    }
+                    else if (buffer.Slice(0, length).SequenceEqual(Token.False))
+                    {
+                        return false;
+                    }
+
+                    throw new InvalidOperationException($"Could not parse {buffer.Slice(0, length).ToString()} as a boolean");
                 }
                 else
                 {
@@ -203,7 +218,7 @@ namespace Serialization.JSON
             throw new InvalidOperationException("Expected token for boolean but none more found");
         }
 
-        public T ReadObject<T>() where T : unmanaged, IJSONSerializable
+        public readonly T ReadObject<T>() where T : unmanaged, IJSONSerializable
         {
             while (ReadToken(out Token token))
             {
@@ -215,9 +230,10 @@ namespace Serialization.JSON
                 {
                     T obj = default;
                     obj.Read(this);
-                    if (PeekToken(out Token peek) && peek.type == Token.Type.EndObject)
+                    if (PeekToken(out Token peek, out int readBytes) && peek.type == Token.Type.EndObject)
                     {
-                        ReadToken();
+                        reader.Advance(readBytes);
+                        //reached end of object
                     }
 
                     return obj;
@@ -231,19 +247,9 @@ namespace Serialization.JSON
             throw new InvalidOperationException("Expected start object token.");
         }
 
-        public unsafe readonly int GetText(Token token, Span<char> destination)
+        public readonly int GetText(Token token, Span<char> destination)
         {
-            int length = reader.PeekUTF8(token.position, token.length, destination);
-            if (destination[0] == '"')
-            {
-                for (int i = 0; i < length - 1; i++)
-                {
-                    destination[i] = destination[i + 1];
-                }
-
-                return length - 2;
-            }
-            else return length;
+            return reader.PeekUTF8(token.position, token.length, destination);
         }
 
         public readonly double GetNumber(Token token)
@@ -257,7 +263,7 @@ namespace Serialization.JSON
         {
             Span<char> buffer = stackalloc char[token.length];
             int length = GetText(token, buffer);
-            return buffer.Slice(0, length).SequenceEqual("true".AsSpan());
+            return buffer.Slice(0, length).SequenceEqual(Token.True);
         }
     }
 }

@@ -12,22 +12,38 @@ namespace Serialization.JSON
     [SkipLocalsInit]
     public unsafe struct JSONObject : IDisposable, ISerializable
     {
-        private Implementation* value;
+        private Implementation* jsonObject;
 
-        public readonly ReadOnlySpan<JSONProperty> Properties => value->properties.AsSpan();
-        public readonly int Count => value->properties.Count;
-        public readonly bool IsDisposed => value is null;
+        public readonly ReadOnlySpan<JSONProperty> Properties
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return jsonObject->properties.AsSpan();
+            }
+        }
+
+        public readonly int Count
+        {
+            get
+            {
+                ThrowIfDisposed();
+
+                return jsonObject->properties.Count;
+            }
+        }
+
+        public readonly bool IsDisposed => jsonObject is null;
 
         public readonly ref JSONProperty this[int index]
         {
             get
             {
-                if (index >= Count)
-                {
-                    throw new IndexOutOfRangeException();
-                }
+                ThrowIfDisposed();
+                ThrowIfPropertyIndexIsOutOfRange(index);
 
-                return ref value->properties[index];
+                return ref jsonObject->properties[index];
             }
         }
 
@@ -35,23 +51,45 @@ namespace Serialization.JSON
         {
             get
             {
+                ThrowIfDisposed();
+                ThrowIfPropertyIsMissing(name);
+
                 int count = Count;
                 for (int i = 0; i < count; i++)
                 {
-                    ref JSONProperty property = ref value->properties[i];
+                    ref JSONProperty property = ref jsonObject->properties[i];
                     if (property.Name.SequenceEqual(name))
                     {
                         return ref property;
                     }
                 }
 
-                throw new NullReferenceException($"Property `{name.ToString()}` not found");
+                return ref Unsafe.AsRef<JSONProperty>(default);
             }
         }
 
-        public readonly ref JSONProperty this[string name] => ref this[name.AsSpan()];
+        public readonly ref JSONProperty this[string name]
+        {
+            get
+            {
+                ThrowIfDisposed();
+                ThrowIfPropertyIsMissing(name);
 
-        public readonly nint Address => (nint)value;
+                int count = Count;
+                for (int i = 0; i < count; i++)
+                {
+                    ref JSONProperty property = ref jsonObject->properties[i];
+                    if (property.Name.SequenceEqual(name))
+                    {
+                        return ref property;
+                    }
+                }
+
+                return ref Unsafe.AsRef<JSONProperty>(default);
+            }
+        }
+
+        public readonly nint Address => (nint)jsonObject;
 
 #if NET
         /// <summary>
@@ -59,32 +97,42 @@ namespace Serialization.JSON
         /// </summary>
         public JSONObject()
         {
-            value = Implementation.Allocate();
+            jsonObject = MemoryAddress.AllocatePointer<Implementation>();
+            jsonObject->properties = new(4);
         }
 #endif
 
         public JSONObject(void* value)
         {
-            this.value = (Implementation*)value;
+            this.jsonObject = (Implementation*)value;
         }
 
         public void Dispose()
         {
             ThrowIfDisposed();
 
-            Implementation.Free(ref value);
+            Span<JSONProperty> properties = jsonObject->properties.AsSpan();
+            for (int i = 0; i < properties.Length; i++)
+            {
+                properties[i].Dispose();
+            }
+
+            jsonObject->properties.Dispose();
+            MemoryAddress.Free(ref jsonObject);
         }
 
         public readonly void Clear()
         {
-            value->properties.Clear();
+            ThrowIfDisposed();
+
+            jsonObject->properties.Clear();
         }
 
         public readonly void RemoveAt(int index)
         {
             ThrowIfDisposed();
 
-            value->properties.RemoveAtBySwapping(index);
+            jsonObject->properties.RemoveAtBySwapping(index);
         }
 
         public readonly T As<T>() where T : unmanaged, IJSONSerializable
@@ -101,26 +149,35 @@ namespace Serialization.JSON
             return value;
         }
 
-        public readonly void ToString(Text result, ReadOnlySpan<char> indent = default, bool cr = false, bool lf = false, byte depth = 0)
+        public readonly void ToString(Text result, SerializationSettings settings = default)
+        {
+            ToString(result, settings, 0);
+        }
+
+        internal readonly void ToString(Text result, SerializationSettings settings, byte depth)
         {
             ThrowIfDisposed();
 
             result.Append('{');
-            if (value->properties.Count > 0)
+            if (jsonObject->properties.Count > 0)
             {
-                NewLine();
+                settings.NewLine(result);
                 for (int i = 0; i <= depth; i++)
                 {
-                    Indent(indent);
+                    settings.Indent(result);
                 }
 
                 int position = 0;
                 while (true)
                 {
-                    ref JSONProperty property = ref value->properties[position];
+                    ref JSONProperty property = ref jsonObject->properties[position];
                     byte childDepth = depth;
                     childDepth++;
-                    property.ToString(result, true, indent, cr, lf, childDepth);
+                    result.Append('\"');
+                    result.Append(property.Name);
+                    result.Append('\"');
+                    result.Append(':');
+                    property.ToString(result, settings, childDepth);
                     position++;
 
                     if (position == Count)
@@ -129,43 +186,27 @@ namespace Serialization.JSON
                     }
 
                     result.Append(',');
-                    NewLine();
+                    settings.NewLine(result);
                     for (int i = 0; i <= depth; i++)
                     {
-                        Indent(indent);
+                        settings.Indent(result);
                     }
                 }
 
-                NewLine();
+                settings.NewLine(result);
                 for (int i = 0; i < depth; i++)
                 {
-                    Indent(indent);
+                    settings.Indent(result);
                 }
             }
 
             result.Append('}');
-
-            void NewLine()
-            {
-                if (cr)
-                {
-                    result.Append('\r');
-                }
-
-                if (lf)
-                {
-                    result.Append('\n');
-                }
-            }
-
-            void Indent(ReadOnlySpan<char> indent)
-            {
-                result.Append(indent);
-            }
         }
 
         public readonly override string ToString()
         {
+            ThrowIfDisposed();
+
             Text buffer = new(0);
             ToString(buffer);
             string result = buffer.ToString();
@@ -182,17 +223,38 @@ namespace Serialization.JSON
             }
         }
 
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfPropertyIsMissing(ReadOnlySpan<char> name)
+        {
+            if (!Contains(name))
+            {
+                throw new NullReferenceException($"Property `{name.ToString()}` not found");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfPropertyIndexIsOutOfRange(int index)
+        {
+            if (index < 0 || index >= Count)
+            {
+                throw new IndexOutOfRangeException($"Property index `{index}` is out of range");
+            }
+        }
+
         public readonly void Add(ReadOnlySpan<char> name, ReadOnlySpan<char> text)
         {
             ThrowIfDisposed();
 
             JSONProperty property = new(name, text);
-            value->properties.Add(property);
+            jsonObject->properties.Add(property);
         }
 
         public readonly void Add(string name, string text)
         {
-            Add(name.AsSpan(), text.AsSpan());
+            ThrowIfDisposed();
+
+            JSONProperty property = new(name, text);
+            jsonObject->properties.Add(property);
         }
 
         public readonly void Add(ReadOnlySpan<char> name, double number)
@@ -200,12 +262,15 @@ namespace Serialization.JSON
             ThrowIfDisposed();
 
             JSONProperty property = new(name, number);
-            value->properties.Add(property);
+            jsonObject->properties.Add(property);
         }
 
         public readonly void Add(string name, double number)
         {
-            Add(name.AsSpan(), number);
+            ThrowIfDisposed();
+
+            JSONProperty property = new(name, number);
+            jsonObject->properties.Add(property);
         }
 
         public readonly void Add(ReadOnlySpan<char> name, bool boolean)
@@ -213,38 +278,47 @@ namespace Serialization.JSON
             ThrowIfDisposed();
 
             JSONProperty property = new(name, boolean);
-            value->properties.Add(property);
+            jsonObject->properties.Add(property);
         }
 
         public readonly void Add(string name, bool boolean)
         {
-            Add(name.AsSpan(), boolean);
+            ThrowIfDisposed();
+
+            JSONProperty property = new(name, boolean);
+            jsonObject->properties.Add(property);
         }
 
-        public readonly void Add(ReadOnlySpan<char> name, JSONObject obj)
+        public readonly void Add(ReadOnlySpan<char> name, JSONObject jsonObject)
         {
             ThrowIfDisposed();
 
-            JSONProperty property = new(name, obj);
-            value->properties.Add(property);
+            JSONProperty property = new(name, jsonObject);
+            this.jsonObject->properties.Add(property);
         }
 
-        public readonly void Add(string name, JSONObject obj)
-        {
-            Add(name.AsSpan(), obj);
-        }
-
-        public readonly void Add(ReadOnlySpan<char> name, JSONArray array)
+        public readonly void Add(string name, JSONObject jsonObject)
         {
             ThrowIfDisposed();
 
-            JSONProperty property = new(name, array);
-            value->properties.Add(property);
+            JSONProperty property = new(name, jsonObject);
+            this.jsonObject->properties.Add(property);
         }
 
-        public readonly void Add(string name, JSONArray array)
+        public readonly void Add(ReadOnlySpan<char> name, JSONArray jsonArray)
         {
-            Add(name.AsSpan(), array);
+            ThrowIfDisposed();
+
+            JSONProperty property = new(name, jsonArray);
+            jsonObject->properties.Add(property);
+        }
+
+        public readonly void Add(string name, JSONArray jsonArray)
+        {
+            ThrowIfDisposed();
+
+            JSONProperty property = new(name, jsonArray);
+            jsonObject->properties.Add(property);
         }
 
         public readonly void AddNull(ReadOnlySpan<char> name)
@@ -252,12 +326,15 @@ namespace Serialization.JSON
             ThrowIfDisposed();
 
             JSONProperty property = new(name);
-            value->properties.Add(property);
+            jsonObject->properties.Add(property);
         }
 
         public readonly void AddNull(string name)
         {
-            AddNull(name.AsSpan());
+            ThrowIfDisposed();
+
+            JSONProperty property = new(name);
+            jsonObject->properties.Add(property);
         }
 
         public readonly bool Contains(ReadOnlySpan<char> name)
@@ -267,7 +344,7 @@ namespace Serialization.JSON
             int count = Count;
             for (int i = 0; i < count; i++)
             {
-                ref JSONProperty property = ref value->properties[i];
+                ref JSONProperty property = ref jsonObject->properties[i];
                 if (property.Name.SequenceEqual(name))
                 {
                     return true;
@@ -451,139 +528,111 @@ namespace Serialization.JSON
 
         void ISerializable.Read(ByteReader reader)
         {
-            value = Implementation.Allocate();
+            jsonObject = MemoryAddress.AllocatePointer<Implementation>();
+            jsonObject->properties = new(4);
             JSONReader jsonReader = new(reader);
-            if (jsonReader.PeekToken(out Token nextToken))
+            if (jsonReader.PeekToken(out Token nextToken, out int readBytes))
             {
                 if (nextToken.type == Token.Type.StartObject)
                 {
-                    jsonReader.ReadToken(out _);
+                    //start of object
+                    reader.Advance(readBytes);
                 }
             }
 
-            ParseObject(jsonReader, reader, this);
-
-            static void ParseObject(JSONReader jsonReader, ByteReader reader, JSONObject jsonObject)
+            //todo: share these temp buffers?
+            using Text nameTextBuffer = new(256);
+            using Text nextTextBuffer = new(256);
+            while (jsonReader.ReadToken(out Token token))
             {
-                Span<char> buffer = stackalloc char[256];
-                while (jsonReader.ReadToken(out Token token))
+                if (token.type == Token.Type.Text)
                 {
-                    if (token.type == Token.Type.Text)
+                    int capacity = token.length * 4;
+                    if (nameTextBuffer.Length < capacity)
                     {
-                        int length = jsonReader.GetText(token, buffer);
-                        if (jsonReader.ReadToken(out Token nextToken))
+                        nameTextBuffer.SetLength(capacity);
+                    }
+
+                    int nameTextLength = jsonReader.GetText(token, nameTextBuffer.AsSpan());
+                    Span<char> name = nameTextBuffer.Slice(0, nameTextLength);
+                    if (jsonReader.ReadToken(out nextToken))
+                    {
+                        int nextCapacity = nextToken.length * 4;
+                        if (nextTextBuffer.Length < nextCapacity)
                         {
-                            ReadOnlySpan<char> nameSpan = buffer.Slice(0, length);
-                            if (nameSpan.Length > 0 && nameSpan[0] == '"')
-                            {
-                                nameSpan = nameSpan.Slice(1, nameSpan.Length - 2);
-                            }
+                            nextTextBuffer.SetLength(nextCapacity);
+                        }
 
-                            if (nextToken.type == Token.Type.True)
+                        if (nextToken.type == Token.Type.Text)
+                        {
+                            int nextTextLength = jsonReader.GetText(nextToken, nextTextBuffer.AsSpan());
+                            ReadOnlySpan<char> nextText = nextTextBuffer.Slice(0, nextTextLength);
+                            if (double.TryParse(nextText, out double number))
                             {
-                                jsonObject.Add(nameSpan, true);
+                                Add(name, number);
                             }
-                            else if (nextToken.type == Token.Type.False)
+                            else if (nextText.SequenceEqual(Token.True))
                             {
-                                jsonObject.Add(nameSpan, false);
+                                Add(name, true);
                             }
-                            else if (nextToken.type == Token.Type.Null)
+                            else if (nextText.SequenceEqual(Token.False))
                             {
-                                jsonObject.AddNull(nameSpan);
+                                Add(name, false);
                             }
-                            else if (nextToken.type == Token.Type.Number)
+                            else if (nextText.SequenceEqual(Token.Null))
                             {
-                                jsonObject.Add(nameSpan, jsonReader.GetNumber(nextToken));
-                            }
-                            else if (nextToken.type == Token.Type.Text)
-                            {
-                                Text textBuffer = new(nextToken.length * 4);
-                                Span<char> bufferSpan = textBuffer.AsSpan();
-                                int textLength = jsonReader.GetText(nextToken, bufferSpan);
-                                ReadOnlySpan<char> text = bufferSpan.Slice(0, textLength);
-                                if (text.Length > 0 && text[0] == '"')
-                                {
-                                    text = text.Slice(1, text.Length - 2);
-                                }
-
-                                jsonObject.Add(nameSpan, text);
-                                textBuffer.Dispose();
-                            }
-                            else if (nextToken.type == Token.Type.StartObject)
-                            {
-                                JSONObject newObject = reader.ReadObject<JSONObject>();
-                                jsonObject.Add(nameSpan, newObject);
-                            }
-                            else if (nextToken.type == Token.Type.StartArray)
-                            {
-                                JSONArray newArray = reader.ReadObject<JSONArray>();
-                                jsonObject.Add(nameSpan, newArray);
-                            }
-                            else if (nextToken.type == Token.Type.EndObject)
-                            {
-                                break;
+                                AddNull(name);
                             }
                             else
                             {
-                                throw new InvalidOperationException($"Invalid JSON token at position {nextToken.position}");
+                                Add(name, nextText);
                             }
+                        }
+                        else if (nextToken.type == Token.Type.StartObject)
+                        {
+                            JSONObject newObject = reader.ReadObject<JSONObject>();
+                            Add(name, newObject);
+                        }
+                        else if (nextToken.type == Token.Type.StartArray)
+                        {
+                            JSONArray newArray = reader.ReadObject<JSONArray>();
+                            Add(name, newArray);
+                        }
+                        else if (nextToken.type == Token.Type.EndObject)
+                        {
+                            break;
                         }
                         else
                         {
-                            throw new InvalidOperationException($"Invalid JSON token at position {token.position}, expected value.");
+                            throw new InvalidOperationException($"Invalid JSON token at position {nextToken.position}");
                         }
-                    }
-                    else if (token.type == Token.Type.EndObject)
-                    {
-                        break;
                     }
                     else
                     {
-                        throw new InvalidOperationException($"Invalid JSON token at position {token.position}");
+                        throw new InvalidOperationException($"No succeeding token available after {name.ToString()}");
                     }
+                }
+                else if (token.type == Token.Type.EndObject)
+                {
+                    break;
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Unexpected token `{token.type}`, expected }} or another text token");
                 }
             }
         }
 
         public static JSONObject Create()
         {
-            return new(Implementation.Allocate());
+            Implementation* jsonObject = MemoryAddress.AllocatePointer<Implementation>();
+            jsonObject->properties = new(4);
+            return new JSONObject(jsonObject);
         }
 
-        public readonly struct Implementation
+        private struct Implementation
         {
-            public readonly List<JSONProperty> properties;
-
-            private Implementation(List<JSONProperty> properties)
-            {
-                this.properties = properties;
-            }
-
-            public static Implementation* Allocate()
-            {
-                List<JSONProperty> properties = new(4);
-                ref Implementation value = ref MemoryAddress.Allocate<Implementation>();
-                value = new(properties);
-                fixed (Implementation* pointer = &value)
-                {
-                    return pointer;
-                }
-            }
-
-            public static void Free(ref Implementation* obj)
-            {
-                MemoryAddress.ThrowIfDefault(obj);
-
-                int count = obj->properties.Count;
-                for (int i = 0; i < count; i++)
-                {
-                    JSONProperty property = obj->properties[i];
-                    property.Dispose();
-                }
-
-                obj->properties.Dispose();
-                MemoryAddress.Free(ref obj);
-            }
+            public List<JSONProperty> properties;
         }
     }
 }
