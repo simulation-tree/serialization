@@ -4,6 +4,10 @@ namespace Serialization.JSON
 {
     public readonly struct Token
     {
+        public const string True = "true";
+        public const string False = "false";
+        public const string Null = "null";
+
         public readonly int position;
         public readonly int length;
         public readonly Type type;
