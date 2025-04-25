@@ -336,7 +336,14 @@ namespace Serialization.Tests
             using Player player = new("playerName", 100, "red");
             player.AddItem("abacus", "212-4", 32, false);
             player.AddItem("itemId", "forgot what this is", 1, true);
-            using JSONWriter jsonWriter = new(SerializationSettings.JSON5PrettyPrinted);
+
+            SerializationSettings settings = SerializationSettings.JSON5PrettyPrinted;
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            {
+                settings.flags &= ~SerializationSettings.Flags.CarrierReturn;
+            }
+
+            using JSONWriter jsonWriter = new(settings);
             jsonWriter.WriteObject(player);
             string jsonSource = jsonWriter.ToString();
 
