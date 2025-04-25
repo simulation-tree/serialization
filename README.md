@@ -1,19 +1,17 @@
 # Serialization
 
-Unmanaged library for working with common human readable formats using readers and
-writers with bytes directly. As well as intermediary/high-level types for representing objects
-within the supported formats.
+Native library for working with common human readable formats using readers and writers.
+With high-level types available for representing objects.
 
 ### Supported formats
 
 - JSON
-- JSON 5
+- JSON 5 (named after ECMAScript 5)
 - XML
 
 ### JSON reader and writer
 
-The reader and writers are used to iteratively progress over data. How the data
-is stored should be known ahead of time (and can be tested).
+The reader and writers are low-level concepts used to traverse and write data:
 ```cs
 using JSONWriter writer = new();
 writer.WriteStartObject();
@@ -29,8 +27,8 @@ reader.ReadEndObject();
 
 ### Generic JSON object
 
-This is an alternative type thats able to represent a JSON object without the need
-for interacting with the reader or writer.
+This is the high-level type that represents a JSON object without the need
+for interacting with the reader/writer types:
 ```cs
 JSONObject fruit = new();
 fruit.Add("name", "cherry");
@@ -50,11 +48,12 @@ jsonObject.Add("inventory", inventory);
 jsonObject["age"].Number++;
 
 using Text jsonText = new();
-jsonObject.ToString(jsonText, "    ", true, true);
+SerializationSettings settings = SerializationSettings.PrettyPrint;
+jsonObject.ToString(jsonText, settings);
 Console.WriteLine(jsonText);
 ```
 
-JSON result:
+Output:
 ```json
 {
     "name": "John Doe",
@@ -70,6 +69,18 @@ JSON result:
     ]
 }
 ```
+
+### JSON 5 support
+
+The reading mechanism supports both old and new JSON formats. But for the writer,
+some settings need to be adjusted:
+```cs
+SerializationSettings settings = new();
+settings.flags |= SerializationFlags.QuotelessNames;
+settings.flags |= SerializationFlags.SingleQuotedText;
+```
+
+The shorthand for these settings is `SerializationSettings.JSON5` and `SerializationSettings.JSON5PrettyPrint`.
 
 ### JSON to C# and back
 
@@ -102,17 +113,26 @@ public struct Player : IJSONObject, IDisposable
 
     void IJSONObject.Read(ref JSONReader reader)
     {
-        //should initialize itself fully
+        //read hp
+        reader.ReadToken();
         hp = (int)reader.ReadNumber(out _);
+
+        //read alive
+        reader.ReadToken();
         alive = reader.ReadBoolean(out _);
-        name = new(reader.ReadText(out _));
+
+        //read name
+        reader.ReadToken();
+        Span<char> nameBuffer = stackalloc char[32];
+        int nameLength = reader.ReadText(nameBuffer);
+        name = new(nameBuffer.Slice(0, nameLength));
     }
 
     void IJSONObject.Write(JSONWriter writer)
     {
-        writer.WriteNumber(hp);
-        writer.WriteBoolean(alive);
-        writer.WriteText(name.AsSpan());
+        writer.WriteProperty(nameof(hp), hp);
+        writer.WriteProperty(nameof(alive), alive);
+        writer.WriteProperty(nameof(name), name.AsSpan());
     }
 }
 
@@ -137,3 +157,10 @@ project.TryGetFirst("TargetFramework", out XMLNode tfm);
 tfm.Content = "net9.0";
 File.WriteAllText("solution.csproj", project.ToString());
 ```
+
+### Contributing and design
+
+Although the name of the library is `serialization`, it's not to solve serialization itself.
+But instead, for providing implementations of common and easy to read/edit formats very efficiently.
+
+And despite "common" being difficult to define, contributions to this are welcome.
