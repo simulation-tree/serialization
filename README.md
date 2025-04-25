@@ -21,8 +21,11 @@ writer.WriteEndObject();
 
 using JSONReader reader = new(writer.GetBytes());
 reader.ReadStartObject();
-ReadOnlySpan<char> propertyValue = reader.ReadText(out ReadOnlySpan<char> propertyName);
+reader.ReadToken();
+Span<char> nameBuffer = stackalloc char[32];
+int nameLength = reader.ReadText(nameBuffer);
 reader.ReadEndObject();
+Assert.That(nameBuffer[..nameLength].ToString(), Is.EqualTo("John Doe"));
 ```
 
 ### Generic JSON object
