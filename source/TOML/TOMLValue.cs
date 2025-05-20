@@ -160,7 +160,17 @@ namespace Serialization.TOML
 
             if (valueType == ValueType.Text)
             {
-                destination.Append(data.GetSpan<char>(length));
+                Span<char> text = data.GetSpan<char>(length);
+                if (text.Contains(' '))
+                {
+                    destination.Append('"');
+                    destination.Append(text);
+                    destination.Append('"');
+                }
+                else
+                {
+                    destination.Append(text);
+                }
             }
             else if (valueType == ValueType.Boolean)
             {

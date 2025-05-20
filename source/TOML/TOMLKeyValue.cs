@@ -222,7 +222,17 @@ namespace Serialization.TOML
             destination.Append('=');
             if (keyValue->valueType == ValueType.Text)
             {
-                destination.Append(keyValue->data.AsSpan<char>(keyValue->keyLength, keyValue->valueLength));
+                Span<char> text = keyValue->data.AsSpan<char>(keyValue->keyLength, keyValue->valueLength);
+                if (text.Contains(' '))
+                {
+                    destination.Append('"');
+                    destination.Append(text);
+                    destination.Append('"');
+                }
+                else
+                {
+                    destination.Append(text);
+                }
             }
             else if (keyValue->valueType == ValueType.Number)
             {

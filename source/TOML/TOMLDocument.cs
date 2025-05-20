@@ -65,12 +65,14 @@ namespace Serialization.TOML
             foreach (TOMLKeyValue keyValue in keyValues)
             {
                 keyValue.ToString(destination);
+                destination.AppendLine();
             }
 
             Span<TOMLTable> tables = document->tables.AsSpan();
             foreach (TOMLTable table in tables)
             {
                 table.ToString(destination);
+                destination.AppendLine();
             }
         }
 
@@ -117,6 +119,21 @@ namespace Serialization.TOML
 
             TOMLKeyValue keyValue = new(key, boolean);
             document->keyValues.Add(keyValue);
+        }
+
+        public readonly void Add(ReadOnlySpan<char> key, TOMLArray array)
+        {
+            MemoryAddress.ThrowIfDefault(document);
+
+            TOMLKeyValue keyValue = new(key, array);
+            document->keyValues.Add(keyValue);
+        }
+
+        public readonly void Add(TOMLTable table)
+        {
+            MemoryAddress.ThrowIfDefault(document);
+
+            document->tables.Add(table);
         }
 
         public readonly bool ContainsValue(ReadOnlySpan<char> key)

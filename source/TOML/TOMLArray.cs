@@ -57,9 +57,20 @@ namespace Serialization.TOML
             this.array->elements = new(array);
         }
 
+        public TOMLArray(ReadOnlySpan<double> numbers)
+        {
+            array = MemoryAddress.AllocatePointer<Implementation>();
+            array->elements = new(numbers.Length);
+            for (int i = 0; i < numbers.Length; i++)
+            {
+                TOMLValue value = new(numbers[i]);
+                array->elements.Add(value);
+            }
+        }
+
         public TOMLArray(void* pointer)
         {
-            this.array = (Implementation*)pointer;
+            array = (Implementation*)pointer;
         }
 
         public readonly override string ToString()
