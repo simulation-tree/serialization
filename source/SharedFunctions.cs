@@ -6,7 +6,12 @@
 
         public static bool IsWhitespace(char character)
         {
-            return character == ' ' || character == '\t' || character == '\n' || character == '\r' || character == BOM;
+            return IsEndOfLine(character) || character == ' ' || character == '\t' || character == BOM;
+        }
+
+        public static bool IsEndOfLine(char character)
+        {
+            return character == '\n' || character == '\r';
         }
     }
 }

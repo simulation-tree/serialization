@@ -2,7 +2,7 @@
 {
     public interface IJSONSerializable
     {
-        void Read(JSONReader reader);
-        void Write(ref JSONWriter writer);
+        void Read(JSONReader byteReader);
+        void Write(ref JSONWriter byteWriter);
     }
 }
