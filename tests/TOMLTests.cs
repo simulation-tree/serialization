@@ -53,16 +53,72 @@ role = ""backend""";
             byteWriter.WriteUTF8(Source);
             using ByteReader byteReader = new(byteWriter.AsSpan());
             TOMLReader tomlReader = new(byteReader);
-            using List<Token> tokens = new();
             while (tomlReader.ReadToken(out Token token))
             {
-                tokens.Add(token);
+                Console.WriteLine($"{token.type}:{token.ToString(tomlReader)}");
             }
+        }
 
-            foreach (Token token in tokens)
-            {
-                System.Console.WriteLine($"{token.type} = {token.ToString(tomlReader)}");
-            }
+        [Test]
+        public void ReadArraysWithInlineTables()
+        {
+            const string Source =
+@"integers = [ 1, 2, 3 ]
+colors = [ ""red"", ""yellow"", ""green"" ]
+nested_arrays_of_ints = [ [ 1, 2 ], [3, 4, 5] ]
+nested_mixed_array = [ [ 1, 2 ], [""a"", ""b"", ""c""] ]
+]";
+
+            using ByteWriter byteWriter = new();
+            byteWriter.WriteUTF8(Source);
+            using ByteReader byteReader = new(byteWriter.AsSpan());
+            TOMLReader tomlReader = new(byteReader);
+
+            using TOMLDocument document = byteReader.ReadObject<TOMLDocument>();
+            Assert.That(document.ContainsValue("integers"), Is.True);
+            Assert.That(document.ContainsValue("colors"), Is.True);
+            Assert.That(document.ContainsValue("nested_arrays_of_ints"), Is.True);
+            Assert.That(document.ContainsValue("nested_mixed_array"), Is.True);
+
+            TOMLArray integers = document.GetValue("integers").Array;
+            Assert.That(integers.Length, Is.EqualTo(3));
+            Assert.That(integers[0].Number, Is.EqualTo(1));
+            Assert.That(integers[1].Number, Is.EqualTo(2));
+            Assert.That(integers[2].Number, Is.EqualTo(3));
+
+            TOMLArray colors = document.GetValue("colors").Array;
+            Assert.That(colors.Length, Is.EqualTo(3));
+            Assert.That(colors[0].Text.ToString(), Is.EqualTo("red"));
+            Assert.That(colors[1].Text.ToString(), Is.EqualTo("yellow"));
+            Assert.That(colors[2].Text.ToString(), Is.EqualTo("green"));
+
+            TOMLArray nestedArraysOfInts = document.GetValue("nested_arrays_of_ints").Array;
+            Assert.That(nestedArraysOfInts.Length, Is.EqualTo(2));
+            
+            TOMLArray first = nestedArraysOfInts[0].Array;
+            Assert.That(first.Length, Is.EqualTo(2));
+            Assert.That(first[0].Number, Is.EqualTo(1));
+            Assert.That(first[1].Number, Is.EqualTo(2));
+
+            TOMLArray second = nestedArraysOfInts[1].Array;
+            Assert.That(second.Length, Is.EqualTo(3));
+            Assert.That(second[0].Number, Is.EqualTo(3));
+            Assert.That(second[1].Number, Is.EqualTo(4));
+            Assert.That(second[2].Number, Is.EqualTo(5));
+
+            TOMLArray nestedMixedArray = document.GetValue("nested_mixed_array").Array;
+            Assert.That(nestedMixedArray.Length, Is.EqualTo(2));
+
+            first = nestedMixedArray[0].Array;
+            Assert.That(first.Length, Is.EqualTo(2));
+            Assert.That(first[0].Number, Is.EqualTo(1));
+            Assert.That(first[1].Number, Is.EqualTo(2));
+
+            second = nestedMixedArray[1].Array;
+            Assert.That(second.Length, Is.EqualTo(3));
+            Assert.That(second[0].Text.ToString(), Is.EqualTo("a"));
+            Assert.That(second[1].Text.ToString(), Is.EqualTo("b"));
+            Assert.That(second[2].Text.ToString(), Is.EqualTo("c"));
         }
 
         [Test]

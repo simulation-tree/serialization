@@ -658,7 +658,7 @@ namespace Serialization.XML
 
         public static XMLNode Create()
         {
-            Text name = new(4);
+            Text name = new(0);
             List<XMLAttribute> attributes = new(4);
             Text content = new(0);
             List<XMLNode> children = new(4);

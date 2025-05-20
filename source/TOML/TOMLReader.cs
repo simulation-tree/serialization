@@ -69,6 +69,44 @@ namespace Serialization.TOML
                     readBytes = position - byteReader.Position + 1;
                     return true;
                 }
+                else if (c == '"')
+                {
+                    position += bytesRead;
+                    int start = position;
+                    while (position < length)
+                    {
+                        bytesRead = byteReader.PeekUTF8(position, out c, out _);
+                        if (c == '"')
+                        {
+                            token = new Token(start, position - start, Token.Type.Text);
+                            readBytes = position - byteReader.Position + 1;
+                            return true;
+                        }
+
+                        position += bytesRead;
+                    }
+
+                    throw new InvalidOperationException("Unterminated string literal");
+                }
+                else if (c == '\'')
+                {
+                    position += bytesRead;
+                    int start = position;
+                    while (position < length)
+                    {
+                        bytesRead = byteReader.PeekUTF8(position, out c, out _);
+                        if (c == '\'')
+                        {
+                            token = new Token(start, position - start, Token.Type.Text);
+                            readBytes = position - byteReader.Position + 1;
+                            return true;
+                        }
+
+                        position += bytesRead;
+                    }
+
+                    throw new InvalidOperationException("Unterminated string literal");
+                }
                 else if (SharedFunctions.IsWhitespace(c))
                 {
                     position += bytesRead;
@@ -152,10 +190,9 @@ namespace Serialization.TOML
             else return length;
         }
 
-        [SkipLocalsInit]
-        public readonly int GetText(Token token, Text destination)
+        public readonly int AppendText(Token token, Text destination)
         {
-            Span<char> buffer = stackalloc char[token.length];
+            Span<char> buffer = stackalloc char[token.length * 4];
             int length = GetText(token, buffer);
             destination.Append(buffer.Slice(0, length));
             return length;

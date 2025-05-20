@@ -7,15 +7,15 @@ namespace Serialization.TOML
 {
     public unsafe struct TOMLTable : IDisposable, ISerializable
     {
-        private Implementation* tomlTable;
+        internal Implementation* table;
 
         public readonly ReadOnlySpan<char> Name
         {
             get
             {
-                MemoryAddress.ThrowIfDefault(tomlTable);
+                MemoryAddress.ThrowIfDefault(table);
 
-                return tomlTable->name.GetSpan<char>(tomlTable->nameLength);
+                return table->name.GetSpan<char>(table->nameLength);
             }
         }
 
@@ -23,13 +23,13 @@ namespace Serialization.TOML
         {
             get
             {
-                MemoryAddress.ThrowIfDefault(tomlTable);
+                MemoryAddress.ThrowIfDefault(table);
 
-                return tomlTable->keyValues.AsSpan();
+                return table->keyValues.AsSpan();
             }
         }
 
-        public readonly bool IsDisposed => tomlTable == default;
+        public readonly bool IsDisposed => table == default;
 
 #if NET
         [Obsolete("Default constructor not supported", true)]
@@ -40,10 +40,15 @@ namespace Serialization.TOML
 
         public TOMLTable(ReadOnlySpan<char> name)
         {
-            tomlTable = MemoryAddress.AllocatePointer<Implementation>();
-            tomlTable->name = MemoryAddress.Allocate(name.Length * sizeof(char));
-            tomlTable->keyValues = new(4);
-            tomlTable->nameLength = name.Length;
+            table = MemoryAddress.AllocatePointer<Implementation>();
+            table->name = MemoryAddress.Allocate(name.Length * sizeof(char));
+            table->keyValues = new(4);
+            table->nameLength = name.Length;
+        }
+        
+        public TOMLTable(void* pointer)
+        {
+            this.table = (Implementation*)pointer;
         }
 
         public readonly override string ToString()
@@ -59,24 +64,24 @@ namespace Serialization.TOML
 
         public void Dispose()
         {
-            MemoryAddress.ThrowIfDefault(tomlTable);
+            MemoryAddress.ThrowIfDefault(table);
 
-            tomlTable->name.Dispose();
+            table->name.Dispose();
 
-            Span<TOMLKeyValue> keyValues = tomlTable->keyValues.AsSpan();
+            Span<TOMLKeyValue> keyValues = table->keyValues.AsSpan();
             foreach (TOMLKeyValue keyValue in keyValues)
             {
                 keyValue.Dispose();
             }
 
-            tomlTable->keyValues.Dispose();
-            MemoryAddress.Free(ref tomlTable);
+            table->keyValues.Dispose();
+            MemoryAddress.Free(ref table);
         }
 
         void ISerializable.Read(ByteReader byteReader)
         {
-            tomlTable = MemoryAddress.AllocatePointer<Implementation>();
-            tomlTable->keyValues = new(4);
+            table = MemoryAddress.AllocatePointer<Implementation>();
+            table->keyValues = new(4);
 
             TOMLReader tomlReader = new(byteReader);
             tomlReader.ReadToken(); //[
@@ -84,8 +89,8 @@ namespace Serialization.TOML
             tomlReader.ReadToken(); //]
 
             Span<char> nameBuffer = stackalloc char[nameToken.length * 4];
-            tomlTable->nameLength = tomlReader.GetText(nameToken, nameBuffer);
-            tomlTable->name = MemoryAddress.Allocate(nameBuffer.Slice(0, tomlTable->nameLength));
+            table->nameLength = tomlReader.GetText(nameToken, nameBuffer);
+            table->name = MemoryAddress.Allocate(nameBuffer.Slice(0, table->nameLength));
 
             while (tomlReader.PeekToken(out Token nextToken))
             {
@@ -97,7 +102,7 @@ namespace Serialization.TOML
                 else if (nextToken.type == Token.Type.Text)
                 {
                     TOMLKeyValue keyValue = byteReader.ReadObject<TOMLKeyValue>();
-                    tomlTable->keyValues.Add(keyValue);
+                    table->keyValues.Add(keyValue);
                 }
                 else if (nextToken.type == Token.Type.StartSquareBracket)
                 {
@@ -112,16 +117,16 @@ namespace Serialization.TOML
 
         readonly void ISerializable.Write(ByteWriter byteWriter)
         {
-            using Text destination = new(32);
+            using Text destination = new(0);
             ToString(destination);
             byteWriter.WriteUTF8(destination.AsSpan());
         }
 
         public readonly bool ContainsValue(ReadOnlySpan<char> key)
         {
-            MemoryAddress.ThrowIfDefault(tomlTable);
+            MemoryAddress.ThrowIfDefault(table);
 
-            Span<TOMLKeyValue> keyValues = tomlTable->keyValues.AsSpan();
+            Span<TOMLKeyValue> keyValues = table->keyValues.AsSpan();
             foreach (TOMLKeyValue keyValue in keyValues)
             {
                 if (keyValue.Key.SequenceEqual(key))
@@ -135,9 +140,9 @@ namespace Serialization.TOML
 
         public readonly bool TryGetValue(ReadOnlySpan<char> key, out TOMLKeyValue value)
         {
-            MemoryAddress.ThrowIfDefault(tomlTable);
+            MemoryAddress.ThrowIfDefault(table);
 
-            Span<TOMLKeyValue> keyValues = tomlTable->keyValues.AsSpan();
+            Span<TOMLKeyValue> keyValues = table->keyValues.AsSpan();
             foreach (TOMLKeyValue keyValue in keyValues)
             {
                 if (keyValue.Key.SequenceEqual(key))
@@ -153,10 +158,10 @@ namespace Serialization.TOML
 
         public readonly TOMLKeyValue GetValue(ReadOnlySpan<char> key)
         {
-            MemoryAddress.ThrowIfDefault(tomlTable);
+            MemoryAddress.ThrowIfDefault(table);
             ThrowIfValueIsMissing(key);
 
-            Span<TOMLKeyValue> keyValues = tomlTable->keyValues.AsSpan();
+            Span<TOMLKeyValue> keyValues = table->keyValues.AsSpan();
             foreach (TOMLKeyValue keyValue in keyValues)
             {
                 if (keyValue.Key.SequenceEqual(key))
@@ -177,7 +182,7 @@ namespace Serialization.TOML
             }
         }
 
-        private struct Implementation
+        internal struct Implementation
         {
             public int nameLength;
             public MemoryAddress name;

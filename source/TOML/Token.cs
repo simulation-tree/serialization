@@ -24,10 +24,10 @@ namespace Serialization.TOML
             return $"Token(type: {type} position:{position} length:{length})";
         }
 
-        public readonly string ToString(TOMLReader reader)
+        public readonly string ToString(TOMLReader tomlReader)
         {
-            using Text destination = new(4);
-            ToString(reader, destination);
+            using Text destination = new(0);
+            ToString(tomlReader, destination);
             return destination.ToString();
         }
 
@@ -35,12 +35,12 @@ namespace Serialization.TOML
         /// Adds the string representation of this token to the <paramref name="destination"/>.
         /// </summary>
         /// <returns>Amount of <see cref="char"/> values added.</returns>
-        public readonly int ToString(TOMLReader reader, Text destination)
+        public readonly int ToString(TOMLReader tomlReader, Text destination)
         {
             switch (type)
             {
                 case Type.Text:
-                    return reader.GetText(this, destination);
+                    return tomlReader.AppendText(this, destination);
                 case Type.Hash:
                     destination.Append('#');
                     return 1;
