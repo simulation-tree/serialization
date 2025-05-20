@@ -5,13 +5,13 @@ using Unmanaged;
 namespace Serialization.TOML
 {
     [SkipLocalsInit]
-    public ref struct TOMLReader
+    public readonly ref struct TOMLReader
     {
-        private ByteReader reader;
+        private readonly ByteReader byteReader;
 
-        public TOMLReader(ByteReader reader)
+        public TOMLReader(ByteReader byteReader)
         {
-            this.reader = reader;
+            this.byteReader = byteReader;
         }
 
         public readonly bool PeekToken(out Token token)
@@ -22,57 +22,57 @@ namespace Serialization.TOML
         public readonly bool PeekToken(out Token token, out int readBytes)
         {
             token = default;
-            int position = reader.Position;
-            int length = reader.Length;
+            int position = byteReader.Position;
+            int length = byteReader.Length;
             while (position < length)
             {
-                byte bytesRead = reader.PeekUTF8(position, out char c, out _);
+                byte bytesRead = byteReader.PeekUTF8(position, out char c, out _);
                 if (c == '#')
                 {
                     token = new Token(position, bytesRead, Token.Type.Hash);
-                    readBytes = position - reader.Position + 1;
+                    readBytes = position - byteReader.Position + 1;
                     return true;
                 }
                 else if (c == '=')
                 {
                     token = new Token(position, bytesRead, Token.Type.Equals);
-                    readBytes = position - reader.Position + 1;
+                    readBytes = position - byteReader.Position + 1;
                     return true;
                 }
                 else if (c == ',')
                 {
                     token = new Token(position, bytesRead, Token.Type.Comma);
-                    readBytes = position - reader.Position + 1;
+                    readBytes = position - byteReader.Position + 1;
                     return true;
                 }
                 else if (c == '.')
                 {
                     token = new Token(position, bytesRead, Token.Type.Period);
-                    readBytes = position - reader.Position + 1;
+                    readBytes = position - byteReader.Position + 1;
                     return true;
                 }
                 else if (c == '[')
                 {
                     token = new Token(position, bytesRead, Token.Type.StartSquareBracket);
-                    readBytes = position - reader.Position + 1;
+                    readBytes = position - byteReader.Position + 1;
                     return true;
                 }
                 else if (c == ']')
                 {
                     token = new Token(position, bytesRead, Token.Type.EndSquareBracket);
-                    readBytes = position - reader.Position + 1;
+                    readBytes = position - byteReader.Position + 1;
                     return true;
                 }
                 else if (c == '{')
                 {
                     token = new Token(position, bytesRead, Token.Type.StartCurlyBrace);
-                    readBytes = position - reader.Position + 1;
+                    readBytes = position - byteReader.Position + 1;
                     return true;
                 }
                 else if (c == '}')
                 {
                     token = new Token(position, bytesRead, Token.Type.EndCurlyBrace);
-                    readBytes = position - reader.Position + 1;
+                    readBytes = position - byteReader.Position + 1;
                     return true;
                 }
                 else if (SharedFunctions.IsWhitespace(c))
@@ -85,19 +85,37 @@ namespace Serialization.TOML
                     position += bytesRead;
                     while (position < length)
                     {
-                        bytesRead = reader.PeekUTF8(position, out c, out _);
+                        bytesRead = byteReader.PeekUTF8(position, out c, out _);
                         if (SharedFunctions.IsEndOfLine(c) || Token.Tokens.Contains(c))
                         {
-                            token = new Token(start, position - start, Token.Type.Text);
-                            readBytes = position - reader.Position;
-                            return true;
+                            if (c == '=')
+                            {
+                                //trim whitespace
+                                int trim = 0;
+                                byteReader.PeekUTF8(position - trim - 1, out c, out _);
+                                while (SharedFunctions.IsWhitespace(c))
+                                {
+                                    trim++;
+                                    byteReader.PeekUTF8(position - trim - 1, out c, out _);
+                                }
+
+                                token = new Token(start, position - start - trim, Token.Type.Text);
+                                readBytes = position - byteReader.Position;
+                                return true;
+                            }
+                            else
+                            {
+                                token = new Token(start, position - start, Token.Type.Text);
+                                readBytes = position - byteReader.Position;
+                                return true;
+                            }
                         }
 
                         position += bytesRead;
                     }
 
                     token = new Token(start, position - start, Token.Type.Text);
-                    readBytes = position - reader.Position;
+                    readBytes = position - byteReader.Position;
                     return true;
                 }
             }
@@ -109,14 +127,14 @@ namespace Serialization.TOML
         public readonly Token ReadToken()
         {
             PeekToken(out Token token, out int readBytes);
-            reader.Advance(readBytes);
+            byteReader.Advance(readBytes);
             return token;
         }
 
         public readonly bool ReadToken(out Token token)
         {
             bool read = PeekToken(out token, out int readBytes);
-            reader.Advance(readBytes);
+            byteReader.Advance(readBytes);
             return read;
         }
 
@@ -127,7 +145,7 @@ namespace Serialization.TOML
         /// <returns>Amount of <see cref="char"/> values copied.</returns>
         public readonly int GetText(Token token, Span<char> destination)
         {
-            int length = reader.PeekUTF8(token.position, token.length, destination);
+            int length = byteReader.PeekUTF8(token.position, token.length, destination);
             if (destination[0] == '"')
             {
                 for (int i = 0; i < length - 1; i++)

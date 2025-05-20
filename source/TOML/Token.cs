@@ -26,9 +26,9 @@ namespace Serialization.TOML
 
         public readonly string ToString(TOMLReader reader)
         {
-            using Text buffer = new(0);
-            ToString(reader, buffer);
-            return buffer.ToString();
+            using Text destination = new(4);
+            ToString(reader, destination);
+            return destination.ToString();
         }
 
         /// <summary>

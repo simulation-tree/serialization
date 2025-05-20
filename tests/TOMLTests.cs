@@ -1,6 +1,6 @@
 using Collections.Generic;
 using Serialization.TOML;
-using System;
+using System.Diagnostics;
 using Unmanaged;
 using Unmanaged.Tests;
 
@@ -8,6 +8,13 @@ namespace Serialization.Tests
 {
     public class TOMLTests : UnmanagedTests
     {
+        [Test]
+        public void CreateAndDisposeObject()
+        {
+            TOMLObject tomlObject = new();
+            tomlObject.Dispose();
+        }
+
         [Test]
         public void ReadTokens()
         {
@@ -47,8 +54,31 @@ role = ""backend""";
 
             foreach (Token token in tokens)
             {
-                Console.WriteLine($"{token.type} = {token.ToString(tomlReader)}");
+                System.Console.WriteLine($"{token.type} = {token.ToString(tomlReader)}");
             }
+        }
+
+        [Test]
+        public void ReadSimpleSource()
+        {
+            const string Source = @"# This is a TOML document
+
+title = ""TOML Example""
+amount = -3213
+enabled = true";
+
+            using ByteWriter writer = new();
+            writer.WriteUTF8(Source);
+            using ByteReader reader = new(writer.AsSpan());
+            TOMLReader tomlReader = new(reader);
+            using TOMLObject tomlObject = reader.ReadObject<TOMLObject>();
+            Assert.That(tomlObject.ContainsKey("title"), Is.True);
+            Assert.That(tomlObject.ContainsKey("amount"), Is.True);
+            Assert.That(tomlObject.ContainsKey("enabled"), Is.True);
+            Assert.That(tomlObject.ContainsKey("unknown"), Is.False);
+            Assert.That(tomlObject["title"].ValueType, Is.EqualTo(ValueType.Text));
+            Assert.That(tomlObject["amount"].ValueType, Is.EqualTo(ValueType.Number));
+            Assert.That(tomlObject["enabled"].ValueType, Is.EqualTo(ValueType.Boolean));
         }
     }
 }
