@@ -7,6 +7,7 @@
         Number,
         Boolean,
         DateTime,
+        TimeSpan,
         Array,
         Table
     }

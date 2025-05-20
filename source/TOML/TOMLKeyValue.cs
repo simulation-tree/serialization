@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Globalization;
 using Unmanaged;
 
 namespace Serialization.TOML
@@ -58,6 +59,28 @@ namespace Serialization.TOML
                 ThrowIfNotTypeOf(ValueType.Boolean);
 
                 return ref keyValue->data.Read<bool>(keyValue->keyLength * sizeof(char));
+            }
+        }
+
+        public readonly ref DateTime DateTime
+        {
+            get
+            {
+                MemoryAddress.ThrowIfDefault(keyValue);
+                ThrowIfNotTypeOf(ValueType.DateTime);
+
+                return ref keyValue->data.Read<DateTime>(keyValue->keyLength * sizeof(char));
+            }
+        }
+
+        public readonly ref TimeSpan TimeSpan
+        {
+            get
+            {
+                MemoryAddress.ThrowIfDefault(keyValue);
+                ThrowIfNotTypeOf(ValueType.TimeSpan);
+
+                return ref keyValue->data.Read<TimeSpan>(keyValue->keyLength * sizeof(char));
             }
         }
 
@@ -156,7 +179,31 @@ namespace Serialization.TOML
 
             //build data
             int keyByteLength = sizeof(char) * keyValue->keyLength;
-            if (double.TryParse(valueText, out double number))
+            if (TimeSpan.TryParse(valueText, out TimeSpan timeSpan))
+            {
+                keyValue->valueType = ValueType.TimeSpan;
+                keyValue->valueLength = 1;
+                keyValue->data = MemoryAddress.Allocate(keyByteLength + sizeof(TimeSpan));
+                keyValue->data.CopyFrom(keyText, 0);
+                keyValue->data.Write(keyByteLength, timeSpan);
+            }
+            else if (DateTimeOffset.TryParse(valueText, default, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out DateTimeOffset dateTimeOffset))
+            {
+                keyValue->valueType = ValueType.DateTime;
+                keyValue->valueLength = 1;
+                keyValue->data = MemoryAddress.Allocate(keyByteLength + sizeof(DateTime));
+                keyValue->data.CopyFrom(keyText, 0);
+                keyValue->data.Write(keyByteLength, dateTimeOffset.DateTime);
+            }
+            else if (DateTime.TryParse(valueText, out DateTime dateTime))
+            {
+                keyValue->valueType = ValueType.DateTime;
+                keyValue->valueLength = 1;
+                keyValue->data = MemoryAddress.Allocate(keyByteLength + sizeof(DateTime));
+                keyValue->data.CopyFrom(keyText, 0);
+                keyValue->data.Write(keyByteLength, dateTime);
+            }
+            else if (double.TryParse(valueText, out double number))
             {
                 keyValue->valueType = ValueType.Number;
                 keyValue->valueLength = 1;
