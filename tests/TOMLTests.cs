@@ -10,7 +10,7 @@ namespace Serialization.Tests
         [Test]
         public void CreateAndDisposeObject()
         {
-            TOMLObject tomlObject = new();
+            TOMLDocument tomlObject = new();
             tomlObject.Dispose();
         }
 
@@ -77,7 +77,7 @@ name = ""No""";
             writer.WriteUTF8(Source);
             using ByteReader reader = new(writer.AsSpan());
             TOMLReader tomlReader = new(reader);
-            using TOMLObject tomlObject = reader.ReadObject<TOMLObject>();
+            using TOMLDocument tomlObject = reader.ReadObject<TOMLDocument>();
             Assert.That(tomlObject.ContainsValue("title"), Is.True);
             Assert.That(tomlObject.ContainsValue("amount"), Is.True);
             Assert.That(tomlObject.ContainsValue("enabled"), Is.True);
