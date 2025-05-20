@@ -14,7 +14,7 @@ namespace Serialization.TOML
             {
                 MemoryAddress.ThrowIfDefault(keyValue);
 
-                return keyValue->key.GetSpan<char>(keyValue->keyLength);
+                return keyValue->data.GetSpan<char>(keyValue->keyLength);
             }
         }
 
@@ -25,6 +25,39 @@ namespace Serialization.TOML
                 MemoryAddress.ThrowIfDefault(keyValue);
 
                 return keyValue->valueType;
+            }
+        }
+
+        public readonly ReadOnlySpan<char> Text
+        {
+            get
+            {
+                MemoryAddress.ThrowIfDefault(keyValue);
+                ThrowIfNotTypeOf(ValueType.Text);
+
+                return keyValue->data.AsSpan<char>(keyValue->keyLength, keyValue->valueLength);
+            }
+        }
+
+        public readonly ref double Number
+        {
+            get
+            {
+                MemoryAddress.ThrowIfDefault(keyValue);
+                ThrowIfNotTypeOf(ValueType.Number);
+
+                return ref keyValue->data.Read<double>(keyValue->keyLength * sizeof(char));
+            }
+        }
+
+        public readonly ref bool Boolean
+        {
+            get
+            {
+                MemoryAddress.ThrowIfDefault(keyValue);
+                ThrowIfNotTypeOf(ValueType.Boolean);
+
+                return ref keyValue->data.Read<bool>(keyValue->keyLength * sizeof(char));
             }
         }
 
@@ -42,9 +75,13 @@ namespace Serialization.TOML
             keyValue = MemoryAddress.AllocatePointer<Implementation>();
             keyValue->valueType = ValueType.Text;
             keyValue->keyLength = key.Length;
-            keyValue->key = MemoryAddress.Allocate(key);
             keyValue->valueLength = text.Length;
-            keyValue->value = MemoryAddress.Allocate(text);
+
+            int keyByteLength = sizeof(char) * key.Length;
+            int textByteLength = sizeof(char) * text.Length;
+            keyValue->data = MemoryAddress.Allocate(keyByteLength + textByteLength);
+            keyValue->data.CopyFrom(key, 0);
+            keyValue->data.CopyFrom(text, keyByteLength);
         }
 
         public TOMLKeyValue(ReadOnlySpan<char> key, double number)
@@ -52,9 +89,12 @@ namespace Serialization.TOML
             keyValue = MemoryAddress.AllocatePointer<Implementation>();
             keyValue->valueType = ValueType.Number;
             keyValue->keyLength = key.Length;
-            keyValue->key = MemoryAddress.Allocate(key);
-            keyValue->valueLength = sizeof(double);
-            keyValue->value = MemoryAddress.AllocateValue(number);
+            keyValue->valueLength = 1;
+
+            int keyByteLength = sizeof(char) * key.Length;
+            keyValue->data = MemoryAddress.Allocate(keyByteLength + sizeof(double));
+            keyValue->data.CopyFrom(key, 0);
+            keyValue->data.Write(keyByteLength, number);
         }
 
         public TOMLKeyValue(ReadOnlySpan<char> key, bool boolean)
@@ -62,14 +102,17 @@ namespace Serialization.TOML
             keyValue = MemoryAddress.AllocatePointer<Implementation>();
             keyValue->valueType = ValueType.Boolean;
             keyValue->keyLength = key.Length;
-            keyValue->key = MemoryAddress.Allocate(key);
-            keyValue->valueLength = sizeof(bool);
-            keyValue->value = MemoryAddress.AllocateValue(boolean);
+            keyValue->valueLength = 1;
+
+            int keyByteLength = sizeof(char) * key.Length;
+            keyValue->data = MemoryAddress.Allocate(keyByteLength + 1);
+            keyValue->data.CopyFrom(key, 0);
+            keyValue->data.Write(keyByteLength, boolean);
         }
 
         public readonly override string ToString()
         {
-            using Text destination = new(32);
+            using Text destination = new(0);
             ToString(destination);
             return destination.ToString();
         }
@@ -82,8 +125,7 @@ namespace Serialization.TOML
         {
             MemoryAddress.ThrowIfDefault(keyValue);
 
-            keyValue->key.Dispose();
-            keyValue->value.Dispose();
+            keyValue->data.Dispose();
             MemoryAddress.Free(ref keyValue);
         }
 
@@ -95,37 +137,62 @@ namespace Serialization.TOML
         {
             keyValue = MemoryAddress.AllocatePointer<Implementation>();
             TOMLReader tomlReader = new(byteReader);
-            Token token = tomlReader.ReadToken();
-            Span<char> buffer = stackalloc char[token.length * 4];
-            keyValue->keyLength = tomlReader.GetText(token, buffer);
-            keyValue->key = MemoryAddress.Allocate(buffer.Slice(0, keyValue->keyLength));
 
-            token = tomlReader.ReadToken();
-            ThrowIfNotEqualsAfterKey(token.type);
+            //read text
+            Token keyToken = tomlReader.ReadToken();
+            Span<char> keyBuffer = stackalloc char[keyToken.length * 4];
+            keyValue->keyLength = tomlReader.GetText(keyToken, keyBuffer);
+            ReadOnlySpan<char> keyText = keyBuffer.Slice(0, keyValue->keyLength);
 
-            token = tomlReader.ReadToken();
-            buffer = stackalloc char[token.length * 4];
-            keyValue->valueLength = tomlReader.GetText(token, buffer);
-            ReadOnlySpan<char> valueText = buffer.Slice(0, keyValue->valueLength);
+            //read equals
+            Token equalsToken = tomlReader.ReadToken();
+            ThrowIfNotEqualsAfterKey(equalsToken.type);
+
+            //read text
+            Token valueToken = tomlReader.ReadToken();
+            Span<char> valueBuffer = stackalloc char[valueToken.length * 4];
+            int valueLength = tomlReader.GetText(valueToken, valueBuffer);
+            ReadOnlySpan<char> valueText = valueBuffer.Slice(0, valueLength);
+
+            //build data
+            int keyByteLength = sizeof(char) * keyValue->keyLength;
             if (double.TryParse(valueText, out double number))
             {
                 keyValue->valueType = ValueType.Number;
-                keyValue->value = MemoryAddress.AllocateValue(number);
+                keyValue->valueLength = 1;
+                keyValue->data = MemoryAddress.Allocate(keyByteLength + sizeof(double));
+                keyValue->data.CopyFrom(keyText, 0);
+                keyValue->data.Write(keyByteLength, number);
             }
             else if (bool.TryParse(valueText, out bool boolean))
             {
                 keyValue->valueType = ValueType.Boolean;
-                keyValue->value = MemoryAddress.AllocateValue(boolean);
+                keyValue->valueLength = 1;
+                keyValue->data = MemoryAddress.Allocate(keyByteLength + 1);
+                keyValue->data.CopyFrom(keyText, 0);
+                keyValue->data.Write(keyByteLength, boolean);
             }
             else
             {
                 keyValue->valueType = ValueType.Text;
-                keyValue->value = MemoryAddress.Allocate(valueText);
+                keyValue->valueLength = valueLength;
+                keyValue->data = MemoryAddress.Allocate(keyByteLength + (sizeof(char) * valueLength));
+                keyValue->data.CopyFrom(keyText, 0);
+                keyValue->data.CopyFrom(valueText, keyByteLength);
             }
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfNotEqualsAfterKey(Token.Type type)
+        private readonly void ThrowIfNotTypeOf(ValueType type)
+        {
+            if (keyValue->valueType != type)
+            {
+                throw new InvalidOperationException($"Expected value type `{type}`, but got `{keyValue->valueType}`");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private static void ThrowIfNotEqualsAfterKey(Token.Type type)
         {
             if (type != Token.Type.Equals)
             {
@@ -137,9 +204,8 @@ namespace Serialization.TOML
         {
             public ValueType valueType;
             public int keyLength;
-            public MemoryAddress key;
             public int valueLength;
-            public MemoryAddress value;
+            public MemoryAddress data;
         }
     }
 }

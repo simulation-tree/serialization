@@ -21,23 +21,13 @@ namespace Serialization.TOML
             }
         }
 
-        public readonly TOMLKeyValue this[ReadOnlySpan<char> key]
+        public readonly ReadOnlySpan<TOMLTable> Tables
         {
             get
             {
                 MemoryAddress.ThrowIfDefault(tomlObject);
-                ThrowIfKeyIsMissing(key);
 
-                Span<TOMLKeyValue> keyValues = tomlObject->keyValues.AsSpan();
-                foreach (TOMLKeyValue keyValue in keyValues)
-                {
-                    if (keyValue.Key.SequenceEqual(key))
-                    {
-                        return keyValue;
-                    }
-                }
-
-                return default;
+                return tomlObject->tables.AsSpan();
             }
         }
 
@@ -51,6 +41,7 @@ namespace Serialization.TOML
         {
             tomlObject = MemoryAddress.AllocatePointer<Implementation>();
             tomlObject->keyValues = new(4);
+            tomlObject->tables = new(4);
         }
 #endif
 
@@ -61,7 +52,7 @@ namespace Serialization.TOML
 
         public readonly override string ToString()
         {
-            using Text destination = new(32);
+            using Text destination = new(0);
             ToString(destination);
             return destination.ToString();
         }
@@ -69,9 +60,17 @@ namespace Serialization.TOML
         public readonly void ToString(Text destination)
         {
             MemoryAddress.ThrowIfDefault(tomlObject);
-            foreach (TOMLKeyValue keyValue in tomlObject->keyValues)
+
+            Span<TOMLKeyValue> keyValues = tomlObject->keyValues.AsSpan();
+            foreach (TOMLKeyValue keyValue in keyValues)
             {
                 keyValue.ToString(destination);
+            }
+
+            Span<TOMLTable> tables = tomlObject->tables.AsSpan();
+            foreach (TOMLTable table in tables)
+            {
+                table.ToString(destination);
             }
         }
 
@@ -79,12 +78,20 @@ namespace Serialization.TOML
         {
             MemoryAddress.ThrowIfDefault(tomlObject);
 
-            foreach (TOMLKeyValue keyValue in tomlObject->keyValues)
+            Span<TOMLKeyValue> keyValues = tomlObject->keyValues.AsSpan();
+            foreach (TOMLKeyValue keyValue in keyValues)
             {
                 keyValue.Dispose();
             }
 
             tomlObject->keyValues.Dispose();
+            Span<TOMLTable> tables = tomlObject->tables.AsSpan();
+            foreach (TOMLTable table in tables)
+            {
+                table.Dispose();
+            }
+
+            tomlObject->tables.Dispose();
             MemoryAddress.Free(ref tomlObject);
         }
 
@@ -112,7 +119,7 @@ namespace Serialization.TOML
             tomlObject->keyValues.Add(keyValue);
         }
 
-        public readonly bool ContainsKey(ReadOnlySpan<char> key)
+        public readonly bool ContainsValue(ReadOnlySpan<char> key)
         {
             MemoryAddress.ThrowIfDefault(tomlObject);
 
@@ -146,23 +153,96 @@ namespace Serialization.TOML
             return false;
         }
 
+        public readonly TOMLKeyValue GetValue(ReadOnlySpan<char> key)
+        {
+            MemoryAddress.ThrowIfDefault(tomlObject);
+            ThrowIfValueIsMissing(key);
+
+            Span<TOMLKeyValue> keyValues = tomlObject->keyValues.AsSpan();
+            foreach (TOMLKeyValue keyValue in keyValues)
+            {
+                if (keyValue.Key.SequenceEqual(key))
+                {
+                    return keyValue;
+                }
+            }
+
+            return default;
+        }
+
+        public readonly bool ContainsTable(ReadOnlySpan<char> name)
+        {
+            MemoryAddress.ThrowIfDefault(tomlObject);
+
+            Span<TOMLTable> tables = tomlObject->tables.AsSpan();
+            foreach (TOMLTable table in tables)
+            {
+                if (table.Name.SequenceEqual(name))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public readonly bool TryGetTable(ReadOnlySpan<char> name, out TOMLTable table)
+        {
+            MemoryAddress.ThrowIfDefault(tomlObject);
+
+            Span<TOMLTable> tables = tomlObject->tables.AsSpan();
+            foreach (TOMLTable existingTable in tables)
+            {
+                if (existingTable.Name.SequenceEqual(name))
+                {
+                    table = existingTable;
+                    return true;
+                }
+            }
+
+            table = default;
+            return false;
+        }
+
+        public readonly TOMLTable GetTable(ReadOnlySpan<char> name)
+        {
+            MemoryAddress.ThrowIfDefault(tomlObject);
+            ThrowIfTableIsMissing(name);
+
+            Span<TOMLTable> tables = tomlObject->tables.AsSpan();
+            foreach (TOMLTable table in tables)
+            {
+                if (table.Name.SequenceEqual(name))
+                {
+                    return table;
+                }
+            }
+
+            return default;
+        }
+
         void ISerializable.Read(ByteReader byteReader)
         {
             tomlObject = MemoryAddress.AllocatePointer<Implementation>();
             tomlObject->keyValues = new(4);
+            tomlObject->tables = new(4);
             TOMLReader tomlReader = new(byteReader);
             while (tomlReader.PeekToken(out Token token))
             {
                 if (token.type == Token.Type.Hash)
                 {
-                    //skip comments
-                    tomlReader.ReadToken();
-                    tomlReader.ReadToken();
+                    tomlReader.ReadToken(); //#
+                    tomlReader.ReadToken(); //text
                 }
                 else if (token.type == Token.Type.Text)
                 {
                     TOMLKeyValue keyValue = byteReader.ReadObject<TOMLKeyValue>();
                     tomlObject->keyValues.Add(keyValue);
+                }
+                else if (token.type == Token.Type.StartSquareBracket)
+                {
+                    TOMLTable table = byteReader.ReadObject<TOMLTable>();
+                    tomlObject->tables.Add(table);
                 }
                 else
                 {
@@ -173,35 +253,44 @@ namespace Serialization.TOML
 
         readonly void ISerializable.Write(ByteWriter byteWriter)
         {
-            Text list = new(0);
-            ToString(list);
-            byteWriter.WriteUTF8(list.AsSpan());
-            list.Dispose();
+            using Text destination = new(32);
+            ToString(destination);
+            byteWriter.WriteUTF8(destination.AsSpan());
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfKeyIsMissing(ReadOnlySpan<char> key)
+        private readonly void ThrowIfValueIsMissing(ReadOnlySpan<char> key)
         {
-            if (!ContainsKey(key))
+            if (!ContainsValue(key))
             {
                 throw new ArgumentException($"Key '{key.ToString()}' is missing in TOML object", nameof(key));
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfTableIsMissing(ReadOnlySpan<char> name)
+        {
+            if (!ContainsTable(name))
+            {
+                throw new ArgumentException($"Table '{name.ToString()}' is missing in TOML object", nameof(name));
             }
         }
 
         /// <summary>
         /// Creates a new empty TOML object.
         /// </summary>
-        /// <returns></returns>
         public static TOMLObject Create()
         {
             Implementation* tomlObject = MemoryAddress.AllocatePointer<Implementation>();
             tomlObject->keyValues = new(4);
+            tomlObject->tables = new(4);
             return new(tomlObject);
         }
 
         private struct Implementation
         {
             public List<TOMLKeyValue> keyValues;
+            public List<TOMLTable> tables;
         }
     }
 }

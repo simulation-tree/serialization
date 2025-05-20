@@ -45,12 +45,6 @@ namespace Serialization.TOML
                     readBytes = position - byteReader.Position + 1;
                     return true;
                 }
-                else if (c == '.')
-                {
-                    token = new Token(position, bytesRead, Token.Type.Period);
-                    readBytes = position - byteReader.Position + 1;
-                    return true;
-                }
                 else if (c == '[')
                 {
                     token = new Token(position, bytesRead, Token.Type.StartSquareBracket);

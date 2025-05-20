@@ -1,6 +1,5 @@
 using Collections.Generic;
 using Serialization.TOML;
-using System.Diagnostics;
 using Unmanaged;
 using Unmanaged.Tests;
 
@@ -61,24 +60,37 @@ role = ""backend""";
         [Test]
         public void ReadSimpleSource()
         {
-            const string Source = @"# This is a TOML document
+            const string Source = 
+@"# This is a TOML document
 
 title = ""TOML Example""
-amount = -3213
-enabled = true";
+amount = -3213.777
+enabled = true
+
+[table]
+name = ""Yes""
+
+[two]
+name = ""No""";
 
             using ByteWriter writer = new();
             writer.WriteUTF8(Source);
             using ByteReader reader = new(writer.AsSpan());
             TOMLReader tomlReader = new(reader);
             using TOMLObject tomlObject = reader.ReadObject<TOMLObject>();
-            Assert.That(tomlObject.ContainsKey("title"), Is.True);
-            Assert.That(tomlObject.ContainsKey("amount"), Is.True);
-            Assert.That(tomlObject.ContainsKey("enabled"), Is.True);
-            Assert.That(tomlObject.ContainsKey("unknown"), Is.False);
-            Assert.That(tomlObject["title"].ValueType, Is.EqualTo(ValueType.Text));
-            Assert.That(tomlObject["amount"].ValueType, Is.EqualTo(ValueType.Number));
-            Assert.That(tomlObject["enabled"].ValueType, Is.EqualTo(ValueType.Boolean));
+            Assert.That(tomlObject.ContainsValue("title"), Is.True);
+            Assert.That(tomlObject.ContainsValue("amount"), Is.True);
+            Assert.That(tomlObject.ContainsValue("enabled"), Is.True);
+            Assert.That(tomlObject.ContainsValue("unknown"), Is.False);
+            Assert.That(tomlObject.GetValue("title").Text.ToString(), Is.EqualTo("TOML Example"));
+            Assert.That(tomlObject.GetValue("amount").Number, Is.EqualTo(-3213.777).Within(0.01));
+            Assert.That(tomlObject.GetValue("enabled").Boolean, Is.True);
+            Assert.That(tomlObject.ContainsTable("table"), Is.True);
+            Assert.That(tomlObject.ContainsTable("two"), Is.True);
+            Assert.That(tomlObject.GetTable("table").ContainsValue("name"), Is.True);
+            Assert.That(tomlObject.GetTable("table").GetValue("name").Text.ToString(), Is.EqualTo("Yes"));
+            Assert.That(tomlObject.GetTable("two").ContainsValue("name"), Is.True);
+            Assert.That(tomlObject.GetTable("two").GetValue("name").Text.ToString(), Is.EqualTo("No"));
         }
     }
 }

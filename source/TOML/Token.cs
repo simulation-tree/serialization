@@ -4,7 +4,7 @@ namespace Serialization.TOML
 {
     public readonly struct Token
     {
-        public const string Tokens = "#=,.[]{}";
+        public const string Tokens = "#=,[]{}";
 
         public readonly int position;
         public readonly int length;
@@ -50,9 +50,6 @@ namespace Serialization.TOML
                 case Type.Comma:
                     destination.Append(',');
                     return 1;
-                case Type.Period:
-                    destination.Append('.');
-                    return 1;
                 case Type.StartSquareBracket:
                     destination.Append('[');
                     return 1;
@@ -77,7 +74,6 @@ namespace Serialization.TOML
             Hash,
             Equals,
             Comma,
-            Period,
             StartSquareBracket,
             EndSquareBracket,
             StartCurlyBrace,
