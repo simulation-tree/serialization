@@ -10,23 +10,24 @@ With high-level types available for representing objects.
 - JSON
 - JSON 5 (named after ECMAScript 5)
 - XML
+- TOML
 
 ### JSON reader and writer
 
 The reader and writers are low-level concepts used to traverse and write data:
 ```cs
-using JSONWriter writer = new();
-writer.WriteStartObject();
-writer.WriteName("name");
-writer.WriteText("John Doe");
-writer.WriteEndObject();
+using JSONWriter jsonWriter = new();
+jsonWriter.WriteStartObject();
+jsonWriter.WriteName("name");
+jsonWriter.WriteText("John Doe");
+jsonWriter.WriteEndObject();
 
-using JSONReader reader = new(writer.GetBytes());
-reader.ReadStartObject();
-reader.ReadToken();
+using JSONReader jsonReader = new(jsonWriter.GetBytes());
+jsonReader.ReadStartObject();
+jsonReader.ReadToken();
 Span<char> nameBuffer = stackalloc char[32];
-int nameLength = reader.ReadText(nameBuffer);
-reader.ReadEndObject();
+int nameLength = jsonReader.ReadText(nameBuffer);
+jsonReader.ReadEndObject();
 Assert.That(nameBuffer[..nameLength].ToString(), Is.EqualTo("John Doe"));
 ```
 
@@ -116,34 +117,34 @@ public struct Player : IJSONObject, IDisposable
         name.Dispose();
     }
 
-    void IJSONObject.Read(ref JSONReader reader)
+    void IJSONObject.Read(ref JSONReader jsonReader)
     {
         //read hp
-        reader.ReadToken();
-        hp = (int)reader.ReadNumber(out _);
+        jsonReader.ReadToken();
+        hp = (int)jsonReader.ReadNumber(out _);
 
         //read alive
-        reader.ReadToken();
-        alive = reader.ReadBoolean(out _);
+        jsonReader.ReadToken();
+        alive = jsonReader.ReadBoolean(out _);
 
         //read name
-        reader.ReadToken();
+        jsonReader.ReadToken();
         Span<char> nameBuffer = stackalloc char[32];
-        int nameLength = reader.ReadText(nameBuffer);
+        int nameLength = jsonReader.ReadText(nameBuffer);
         name = new(nameBuffer.Slice(0, nameLength));
     }
 
-    void IJSONObject.Write(JSONWriter writer)
+    void IJSONObject.Write(JSONWriter jsonWriter)
     {
-        writer.WriteProperty(nameof(hp), hp);
-        writer.WriteProperty(nameof(alive), alive);
-        writer.WriteProperty(nameof(name), name.AsSpan());
+        jsonWriter.WriteProperty(nameof(hp), hp);
+        jsonWriter.WriteProperty(nameof(alive), alive);
+        jsonWriter.WriteProperty(nameof(name), name.AsSpan());
     }
 }
 
 byte[] jsonBytes = File.ReadAllBytes("player.json");
-using ByteReader reader = new(jsonBytes);
-JSONReader jsonReader = new(reader);
+using ByteReader byteReader = new(jsonBytes);
+JSONReader jsonReader = new(byteReader);
 using Player player = jsonReader.ReadObject<Player>();
 ReadOnlySpan<char> name = player.Name;
 ```
@@ -154,13 +155,22 @@ XML is supported through the `XMLNode` type, which can be created from either a 
 Each node has a name, content, and a list of children. Attributes can be read using the indexer.
 ```cs
 byte[] xmlData = File.ReadAllBytes("solution.csproj");
-using XMLNode project = new(xmlData);
+using ByteReader byteReader = new(xmlData);
+using XMLNode project = byteReader.ReadObject<XMLNode>();
 XMLAttribute sdk = project["Sdk"];
 sdk.Value = "Simulation.NET.Sdk";
 project.TryGetFirst("PropertyGroup", out XMLNode propertyGroup);
 project.TryGetFirst("TargetFramework", out XMLNode tfm);
 tfm.Content = "net9.0";
 File.WriteAllText("solution.csproj", project.ToString());
+```
+
+### TOML
+
+```cs
+byte[] tomlData = File.ReadAllBytes("config.toml");
+using ByteReader byteReader = new(tomlData);
+using TOMLDocument document = byteReader.ReadObject<TOMLDocument>();
 ```
 
 ### Contributing and design

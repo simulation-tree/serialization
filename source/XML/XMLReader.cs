@@ -4,6 +4,7 @@ using Unmanaged;
 
 namespace Serialization.XML
 {
+    [SkipLocalsInit]
     public ref struct XMLReader
     {
         private ByteReader reader;
@@ -178,10 +179,9 @@ namespace Serialization.XML
             else return length;
         }
 
-        [SkipLocalsInit]
-        public readonly int GetText(Token token, Text destination)
+        public readonly int AppendText(Token token, Text destination)
         {
-            Span<char> buffer = stackalloc char[token.length];
+            Span<char> buffer = stackalloc char[token.length * 4];
             int length = GetText(token, buffer);
             destination.Append(buffer.Slice(0, length));
             return length;
