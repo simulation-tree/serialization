@@ -36,7 +36,7 @@ namespace Serialization.TOML
                 MemoryAddress.ThrowIfDefault(keyValue);
                 ThrowIfNotTypeOf(ValueType.Text);
 
-                return keyValue->data.AsSpan<char>(keyValue->keyLength, keyValue->valueLength);
+                return keyValue->data.AsSpan<char>(keyValue->keyLength * sizeof(char), keyValue->valueLength);
             }
         }
 
@@ -222,7 +222,7 @@ namespace Serialization.TOML
             destination.Append('=');
             if (keyValue->valueType == ValueType.Text)
             {
-                Span<char> text = keyValue->data.AsSpan<char>(keyValue->keyLength, keyValue->valueLength);
+                Span<char> text = keyValue->data.AsSpan<char>(keyValue->keyLength * sizeof(char), keyValue->valueLength);
                 if (text.Contains(' '))
                 {
                     destination.Append('"');
