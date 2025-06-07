@@ -103,7 +103,7 @@ namespace Serialization.XML
                             }
                             else if (!char.IsLetterOrDigit(c))
                             {
-                                throw new Exception($"Invalid XML, unknown symbol '{c}' inside node");
+                                throw new Exception($"Invalid XML, unknown symbol `{c}` inside node");
                             }
                         }
 

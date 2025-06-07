@@ -89,7 +89,7 @@ namespace Serialization.Tests
 
             reader.Position = 0;
             using XMLNode node = reader.ReadObject<XMLNode>();
-            string str = node.ToString("");
+            string str = node.ToString(SerializationSettings.Default);
             Assert.That(str, Is.EqualTo(Sample));
         }
 
@@ -148,6 +148,27 @@ namespace Serialization.Tests
             XMLReader xmlReader = new(reader);
             using XMLNode node = xmlReader.ReadNode();
             Assert.That(node.IsPrologue, Is.True);
+        }
+
+        [Test]
+        public void SkipEmptyNodes()
+        {
+            using XMLNode node = new("Root");
+            node.Add(new("Name", "Boa"));
+            node.Add(new("Type", "Box"));
+            node.Add(new("Empty"));
+
+            SerializationSettings settings = SerializationSettings.PrettyPrinted;
+            settings.flags |= SerializationSettings.Flags.SkipEmptyNodes;
+
+            using ByteReader reader = ByteReader.CreateFromUTF8(node.ToString(settings));
+            using XMLNode readNode = reader.ReadObject<XMLNode>();
+            Assert.That(readNode.Name.ToString(), Is.EqualTo("Root"));
+            Assert.That(readNode.Children.Length, Is.EqualTo(2));
+            Assert.That(readNode.Children[0].Name.ToString(), Is.EqualTo("Name"));
+            Assert.That(readNode.Children[0].Content.ToString(), Is.EqualTo("Boa"));
+            Assert.That(readNode.Children[1].Name.ToString(), Is.EqualTo("Type"));
+            Assert.That(readNode.Children[1].Content.ToString(), Is.EqualTo("Box"));
         }
     }
 }

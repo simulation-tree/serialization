@@ -78,6 +78,9 @@ namespace Serialization.XML
         public readonly bool IsDisposed => name.IsDisposed;
 
 #if NET
+        /// <summary>
+        /// Creates an empty XML node.
+        /// </summary>
         public XMLNode()
         {
             name = new(4);
@@ -148,17 +151,16 @@ namespace Serialization.XML
         public readonly override string ToString()
         {
             Text buffer = new(0);
-            ToStringFlags flags = ToStringFlags.CarriageReturn | ToStringFlags.LineFeed;
-            ToString(buffer, "  ", flags);
+            ToString(buffer, SerializationSettings.PrettyPrinted);
             string str = buffer.AsSpan().ToString();
             buffer.Dispose();
             return str;
         }
 
-        public readonly string ToString(string indent, ToStringFlags flags = default)
+        public readonly string ToString(SerializationSettings settings)
         {
             Text buffer = new(0);
-            ToString(buffer, indent, flags);
+            ToString(buffer, settings);
             string str = buffer.AsSpan().ToString();
             buffer.Dispose();
             return str;
@@ -167,8 +169,15 @@ namespace Serialization.XML
         readonly void ISerializable.Write(ByteWriter writer)
         {
             Text buffer = new(0);
-            ToStringFlags flags = ToStringFlags.CarriageReturn | ToStringFlags.LineFeed;
-            ToString(buffer, default, flags, 0);
+            ToString(buffer, SerializationSettings.PrettyPrinted, 0);
+            writer.WriteSpan(buffer.AsSpan());
+            buffer.Dispose();
+        }
+
+        public readonly void Write(ByteWriter writer, SerializationSettings settings)
+        {
+            Text buffer = new(0);
+            ToString(buffer, settings, 0);
             writer.WriteSpan(buffer.AsSpan());
             buffer.Dispose();
         }
@@ -312,21 +321,16 @@ namespace Serialization.XML
             }
         }
 
-        public readonly void ToString(Text destination, ReadOnlySpan<char> indent = default, ToStringFlags flags = default)
+        public readonly void ToString(Text destination, SerializationSettings settings = default)
         {
-            ToString(destination, indent, flags, 0);
+            ToString(destination, settings, 0);
         }
 
-        public readonly void ToString(Text destination, string indent = "", ToStringFlags flags = default)
-        {
-            ToString(destination, indent.AsSpan(), flags, 0);
-        }
-
-        private readonly void ToString(Text destination, ReadOnlySpan<char> indent, ToStringFlags flags, byte depth)
+        private readonly void ToString(Text destination, SerializationSettings settings, byte depth)
         {
             for (int i = 0; i < depth; i++)
             {
-                Indent(indent);
+                settings.Indent(destination);
             }
 
             destination.Append('<');
@@ -336,14 +340,17 @@ namespace Serialization.XML
             }
 
             destination.Append(Name);
-            for (int i = 0; i < attributes.Count; i++)
+
+            Span<XMLAttribute> attributesSpan = attributes.AsSpan();
+            for (int i = 0; i < attributesSpan.Length; i++)
             {
                 destination.Append(' ');
-                XMLAttribute attribute = attributes[i];
+                XMLAttribute attribute = attributesSpan[i];
                 attribute.ToString(destination);
             }
 
-            if (content.Length > 0 || children.Count > 0)
+            Span<XMLNode> childrenSpan = children.AsSpan();
+            if (content.Length > 0 || childrenSpan.Length > 0)
             {
                 if (prologue)
                 {
@@ -356,30 +363,37 @@ namespace Serialization.XML
 
                 destination.Append('>');
                 destination.Append(Content);
-
-                if (children.Count > 0)
+                if (childrenSpan.Length > 0)
                 {
-                    foreach (XMLNode child in children)
+                    for (int c = 0; c < childrenSpan.Length; c++)
                     {
-                        if (depth == 1 && (flags & ToStringFlags.RootSpacing) == ToStringFlags.RootSpacing)
+                        XMLNode child = childrenSpan[c];
+                        if ((settings.flags & SerializationSettings.Flags.SkipEmptyNodes) == SerializationSettings.Flags.SkipEmptyNodes)
                         {
-                            NewLine();
+                            if (child.content.Length == 0 && child.children.Count == 0 && child.attributes.Count == 0)
+                            {
+                                continue;
+                            }
                         }
 
-                        NewLine();
-                        child.ToString(destination, indent, flags, depth);
+                        if (depth == 1 && (settings.flags & SerializationSettings.Flags.RootSpacing) == SerializationSettings.Flags.RootSpacing)
+                        {
+                            settings.NewLine(destination);
+                        }
+
+                        settings.NewLine(destination);
+                        child.ToString(destination, settings, depth);
                     }
 
-
-                    if (depth == 1 && (flags & ToStringFlags.RootSpacing) == ToStringFlags.RootSpacing)
+                    if (depth == 1 && (settings.flags & SerializationSettings.Flags.RootSpacing) == SerializationSettings.Flags.RootSpacing)
                     {
-                        NewLine();
+                        settings.NewLine(destination);
                     }
 
-                    NewLine();
+                    settings.NewLine(destination);
                     for (int i = 0; i < depth - 1; i++)
                     {
-                        Indent(indent);
+                        settings.Indent(destination);
                     }
                 }
 
@@ -395,24 +409,6 @@ namespace Serialization.XML
             {
                 destination.Append('/');
                 destination.Append('>');
-            }
-
-            void NewLine()
-            {
-                if ((flags & ToStringFlags.CarriageReturn) == ToStringFlags.CarriageReturn)
-                {
-                    destination.Append('\r');
-                }
-
-                if ((flags & ToStringFlags.LineFeed) == ToStringFlags.LineFeed)
-                {
-                    destination.Append('\n');
-                }
-            }
-
-            void Indent(ReadOnlySpan<char> indent)
-            {
-                destination.Append(indent);
             }
         }
 
