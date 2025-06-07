@@ -28,9 +28,9 @@
 
   <ItemGroup>
     <Content Include="bin/Debug/net9.0/Serialization.dll" Pack="true" PackagePath="tools/debug/Serialization.dll" Visible="false"/>
-    <Content Include="bin/Debug/net9.0/Serialization.xml" Pack="true" PackagePath="tools/debug/Serialization.xml" Visible="false"/>
+    <Content Include="bin/Debug/net9.0/Serialization.xml" Pack="true" PackagePath="tools/debug/Serialization.xml" Visible="false" Condition="Exists('bin/Debug/net9.0/Serialization.xml')"/>
     <Content Include="bin/Release/net9.0/Serialization.dll" Pack="true" PackagePath="tools/release/Serialization.dll" Visible="false"/>
-    <Content Include="bin/Release/net9.0/Serialization.xml" Pack="true" PackagePath="tools/release/Serialization.xml" Visible="false"/>
+    <Content Include="bin/Release/net9.0/Serialization.xml" Pack="true" PackagePath="tools/release/Serialization.xml" Visible="false" Condition="Exists('bin/Release/net9.0/Serialization.xml')"/>
     <Content Include="build/Serialization.targets" Pack="true" PackagePath="build/Serialization.targets" Visible="false"/>
   </ItemGroup>
 
