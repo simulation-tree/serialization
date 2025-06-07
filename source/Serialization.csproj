@@ -1,28 +1,37 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-        <ImplicitUsings>disable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Title>Serialization</Title>
-        <Authors>popcron</Authors>
-        <Company>simulation-tree</Company>
-        <RepositoryUrl>https://github.com/simulation-tree/serialization</RepositoryUrl>
-        <IsTrimmable>True</IsTrimmable>
-        <IsAotCompatible>True</IsAotCompatible>
-        <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-        <NoWarn>NU1900</NoWarn>
-        <PackageId/>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Title>Serialization</Title>
+    <Authors>popcron</Authors>
+    <Company>simulation-tree</Company>
+    <RepositoryUrl>https://github.com/simulation-tree/serialization</RepositoryUrl>
+    <IsTrimmable>True</IsTrimmable>
+    <IsAotCompatible>True</IsAotCompatible>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <NoWarn>NU1900</NoWarn>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\collections\source\Collections.csproj"/>
-        <ProjectReference Include="..\..\unmanaged\core\Unmanaged.Core.csproj"/>
-		<ProjectReference Include="..\..\unmanaged\generator\Unmanaged.Generator.csproj">
-			<OutputItemType>Analyzer</OutputItemType>
-			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-		</ProjectReference>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\collections\source\Collections.csproj"/>
+    <ProjectReference Include="..\..\unmanaged\core\Unmanaged.Core.csproj"/>
+    <ProjectReference Include="..\..\unmanaged\generator\Unmanaged.Generator.csproj">
+      <OutputItemType>Analyzer</OutputItemType>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="bin/Debug/net9.0/Serialization.dll" Pack="true" PackagePath="tools/debug/Serialization.dll" Visible="false"/>
+    <Content Include="bin/Debug/net9.0/Serialization.xml" Pack="true" PackagePath="tools/debug/Serialization.xml" Visible="false"/>
+    <Content Include="bin/Release/net9.0/Serialization.dll" Pack="true" PackagePath="tools/release/Serialization.dll" Visible="false"/>
+    <Content Include="bin/Release/net9.0/Serialization.xml" Pack="true" PackagePath="tools/release/Serialization.xml" Visible="false"/>
+    <Content Include="build/Serialization.targets" Pack="true" PackagePath="build/Serialization.targets" Visible="false"/>
+  </ItemGroup>
 
 </Project>
