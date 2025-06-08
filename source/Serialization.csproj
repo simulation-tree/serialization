@@ -14,7 +14,7 @@
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <NoWarn>NU1900</NoWarn>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <OutDir>bin/$(TargetFramework)/$(Configuration)</OutDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,11 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="bin/Debug/net9.0/Serialization.dll" Pack="true" PackagePath="tools/debug/Serialization.dll" Visible="false"/>
-    <Content Include="bin/Debug/net9.0/Serialization.xml" Pack="true" PackagePath="tools/debug/Serialization.xml" Visible="false" Condition="Exists('bin/Debug/net9.0/Serialization.xml')"/>
-    <Content Include="bin/Release/net9.0/Serialization.dll" Pack="true" PackagePath="tools/release/Serialization.dll" Visible="false"/>
-    <Content Include="bin/Release/net9.0/Serialization.xml" Pack="true" PackagePath="tools/release/Serialization.xml" Visible="false" Condition="Exists('bin/Release/net9.0/Serialization.xml')"/>
-    <Content Include="build/Serialization.targets" Pack="true" PackagePath="build/Serialization.targets" Visible="false"/>
+    <Content Include="bin/**/*" Pack="true" PackagePath="lib" Visible="false"/>
+    <Content Include="buildTransitive/**/*" Pack="true" PackagePath="buildTransitive"/>
   </ItemGroup>
 
 </Project>

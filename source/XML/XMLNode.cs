@@ -440,6 +440,20 @@ namespace Serialization.XML
             return children.TryIndexOf(node, out index);
         }
 
+        /// <summary>
+        /// Removes all child nodes.
+        /// </summary>
+        public readonly void Clear()
+        {
+            Span<XMLNode> childrenSpan = children.AsSpan();
+            for (int i = 0; i < childrenSpan.Length; i++)
+            {
+                childrenSpan[i].Dispose();
+            }
+
+            children.Clear();
+        }
+
         public readonly XMLNode GetFirst(ReadOnlySpan<char> name)
         {
             foreach (XMLNode node in children)
