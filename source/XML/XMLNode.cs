@@ -589,7 +589,7 @@ namespace Serialization.XML
         /// <summary>
         /// Creates a new attribute or assigns an existing one to the given value.
         /// </summary>
-        /// <returns><c>true</c> if it was created, otherwise it was set</returns>
+        /// <returns><see langword="true"/> if it was created, otherwise it was set</returns>
         public readonly bool SetAttribute(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
         {
             for (int i = 0; i < attributes.Count; i++)
