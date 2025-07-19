@@ -1,3 +1,8 @@
+### Archive notice
+
+This repository is archived, in favor of unique repositories per serialization
+format.
+
 # Serialization
 
 [![Test](https://github.com/simulation-tree/serialization/actions/workflows/test.yml/badge.svg)](https://github.com/simulation-tree/serialization/actions/workflows/test.yml)
