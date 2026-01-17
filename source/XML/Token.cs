@@ -47,7 +47,7 @@ namespace Serialization.XML
                     destination.Append('/');
                     return 1;
                 case Type.Text:
-                    return reader.GetText(this, destination);
+                    return reader.AppendText(this, destination);
                 case Type.Prologue:
                     destination.Append('?');
                     return 1;
